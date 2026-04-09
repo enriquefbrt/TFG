@@ -12,7 +12,7 @@ from datasets import Dataset
 
 from tfg_molecular_generation.ape_hf_wrapper import APEHuggingFaceTokenizer
 
-MODEL_NAME = "google/t5-v1_1-small"
+MODEL_NAME = "google/t5-v1_1-base"
 
 def load_and_tokenize_data(csv_path: str, tokenizer, max_input_length=128, max_target_length=128):
     """
