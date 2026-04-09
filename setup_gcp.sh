@@ -19,7 +19,7 @@ fi
 uv sync
 
 echo ""
-if [ ! -f "data/guacamol_completo_1.6M.csv" ]; then
+if [ ! -f "./data/guacamol_completo_1.6M.csv" ]; then
     echo "[2/4] Descargando el Dataset Oficial GuacaMol v1..."
     mkdir -p data
 
@@ -55,6 +55,8 @@ print(f'Guardado con éxito en: {output_path} ({len(df_all)} SMILES exactos obte
 else
     echo "[2,3,4/4] ¡Dataset 'guacamol_completo_1.6M.csv' ya existe! Omitiendo descarga."
 fi
+
+head -n 300000 data/guacamol_completo_1.6M.csv > data/guacamol_subset.csv
 
 echo "=========================================="
 echo "  INSTALACIÓN Y DATOS COMPLETADOS AL 100%"
