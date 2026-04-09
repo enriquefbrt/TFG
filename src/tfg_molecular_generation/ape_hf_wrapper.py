@@ -22,7 +22,7 @@ class APEHuggingFaceTokenizer(PreTrainedTokenizerFast):
         mapping_file = os.path.join(ape_tokenizer_path, "unicode_mapping.json")
 
         if not os.path.exists(tokenizer_file) or not os.path.exists(mapping_file):
-            raise ValueError(f"No se encontró el Tokenizer o el Mapping en {ape_tokenizer_path}")
+            raise ValueError(f"Could not find Tokenizer or Mapping files in {ape_tokenizer_path}")
 
         with open(mapping_file, "r") as f:
             mapping = json.load(f)

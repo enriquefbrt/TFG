@@ -145,9 +145,23 @@ def main():
         data_collator=data_collator,
     )
     
-    # 5. Start Training
+    # 5. Handle Spot Instance Preemptions (Resume from Checkpoint)
+    from transformers.trainer_utils import get_last_checkpoint
+    
+    last_checkpoint = None
+    if os.path.isdir(args.output_dir):
+        try:
+            last_checkpoint = get_last_checkpoint(args.output_dir)
+        except Exception:
+            pass
+            
+        if last_checkpoint is not None:
+            print(f"Spot Preemption Alert! Resuming training from checkpoint: {last_checkpoint}")
+        else:
+            print("Starting Training from scratch...")
+
     print("Starting Training...")
-    trainer.train()
+    trainer.train(resume_from_checkpoint=last_checkpoint)
     print("Training finished!")
     
     # 6. Save the final model and tokenizer state
