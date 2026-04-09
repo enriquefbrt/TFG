@@ -18,6 +18,8 @@ fi
 # Crea el entorno virtual .venv e instala todo lo del pyproject.toml
 uv sync
 
+head -n 300000 data/guacamol_completo_1.6M.csv > data/guacamol_subset.csv
+
 echo "=========================================="
 echo "  INSTALACIÓN Y DATOS COMPLETADOS AL 100%"
 echo "=========================================="
