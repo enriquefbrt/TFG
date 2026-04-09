@@ -68,12 +68,23 @@ class APEHuggingFaceTokenizer(PreTrainedTokenizerFast):
             batch_text_or_text_pairs = [self.translate_to_unicode(t) for t in batch_text_or_text_pairs]
         return super().batch_encode_plus(batch_text_or_text_pairs, *args, **kwargs)
 
-    def __call__(self, text, *args, **kwargs):
-        if isinstance(text, str):
-            text = self.translate_to_unicode(text)
-        elif isinstance(text, list) and len(text) > 0 and isinstance(text[0], str):
-             text = [self.translate_to_unicode(t) for t in text]
-        return super().__call__(text, *args, **kwargs)
+    def __call__(self, text=None, *args, **kwargs):
+        if text is not None:
+            if isinstance(text, str):
+                text = self.translate_to_unicode(text)
+            elif isinstance(text, list) and len(text) > 0 and isinstance(text[0], str):
+                text = [self.translate_to_unicode(t) for t in text]
+                
+        if "text_target" in kwargs and kwargs["text_target"] is not None:
+            tt = kwargs["text_target"]
+            if isinstance(tt, str):
+                kwargs["text_target"] = self.translate_to_unicode(tt)
+            elif isinstance(tt, list) and len(tt) > 0 and isinstance(tt[0], str):
+                kwargs["text_target"] = [self.translate_to_unicode(t) for t in tt]
+                
+        if text is not None:
+            return super().__call__(text, *args, **kwargs)
+        return super().__call__(*args, **kwargs)
 
     # Intercept return decodes
     def decode(self, token_ids, *args, **kwargs):
