@@ -1,17 +1,16 @@
 import os
 import json
-from transformers import PreTrainedTokenizer
-from tfg_molecular_generation.ape_tokenizer import APETokenizer
+import re
+from transformers import PreTrainedTokenizerFast
 
-class APEHuggingFaceTokenizer(PreTrainedTokenizer):
+class APEHuggingFaceTokenizer(PreTrainedTokenizerFast):
     """
-    Wrapper to make the custom APETokenizer compatible with HuggingFace's Trainer 
-    and T5 architectures.
+    Fast Wrapper that uses the Rust BPE engine under the hood equipped 
+    with the Unicode Translation Trick to support Molecular APE Tokenization.
     """
-    
     def __init__(
         self,
-        ape_tokenizer_path=None,
+        ape_tokenizer_path,
         bos_token="<s>",
         eos_token="</s>",
         unk_token="<unk>",
@@ -19,29 +18,21 @@ class APEHuggingFaceTokenizer(PreTrainedTokenizer):
         mask_token="<mask>",
         **kwargs
     ):
-        # 1. Initiatilize the original APETokenizer
-        if ape_tokenizer_path and os.path.exists(ape_tokenizer_path):
-            self.ape = APETokenizer.from_pretrained(ape_tokenizer_path)
-            # Update tokens based on what was loaded
-            bos_token = self.ape.bos_token
-            eos_token = self.ape.eos_token
-            unk_token = self.ape.unk_token
-            pad_token = self.ape.pad_token
-            mask_token = self.ape.mask_token
-        else:
-            self.ape = APETokenizer(
-                bos_token=bos_token,
-                eos_token=eos_token,
-                unk_token=unk_token,
-                pad_token=pad_token,
-                mask_token=mask_token
-            )
-            
-        # We need to explicitly set vocab_file here for HF validation later
-        self.vocab_file = None if ape_tokenizer_path is None else os.path.join(ape_tokenizer_path, "vocab.json")
-        
-        # 2. Call the HuggingFace Parent Constructor
+        tokenizer_file = os.path.join(ape_tokenizer_path, "tokenizer.json")
+        mapping_file = os.path.join(ape_tokenizer_path, "unicode_mapping.json")
+
+        if not os.path.exists(tokenizer_file) or not os.path.exists(mapping_file):
+            raise ValueError(f"No se encontró el Tokenizer o el Mapping en {ape_tokenizer_path}")
+
+        with open(mapping_file, "r") as f:
+            mapping = json.load(f)
+            self.token_to_unicode = mapping["token_to_unicode"]
+            self.unicode_to_token = mapping["unicode_to_token"]
+
+        self.pattern = re.compile(r"\[[^\]]+\]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\\\|\/|:|~|@|\?|>|\*|\$|\%[0-9]{2}|[0-9]")
+
         super().__init__(
+            tokenizer_file=tokenizer_file,
             bos_token=bos_token,
             eos_token=eos_token,
             unk_token=unk_token,
@@ -50,46 +41,45 @@ class APEHuggingFaceTokenizer(PreTrainedTokenizer):
             **kwargs,
         )
 
-    @property
-    def vocab_size(self):
-        return len(self.ape.vocabulary)
+    def translate_to_unicode(self, text):
+        if not text:
+            return text
+        parts = self.pattern.findall(text)
+        return "".join(self.token_to_unicode.get(p, p) for p in parts)
 
-    def get_vocab(self):
-        return dict(self.ape.vocabulary)
+    def decode_from_unicode(self, text):
+        if not text:
+            return text
+        return "".join(self.unicode_to_token.get(c, c) for c in text)
 
-    def _tokenize(self, text):
-        """
-        Takes a string and converts it to a list of str tokens.
-        APETokenizer encodes straight to ID's so we have to reverse it for this HF step.
-        """
-        # Encode returns integers (IDs) (we pass add_special_tokens=False because HF handles CLS/SEP automatically later)
-        ids = self.ape.encode(text, add_special_tokens=False)
-        # Convert those IDs back to tokens using self.ape method
-        tokens = self.ape.convert_ids_to_tokens(ids)
-        return tokens
+    # We intercept token generation calls to apply the unicode trick seamlessly
+    def encode(self, text, *args, **kwargs):
+        if isinstance(text, str):
+            text = self.translate_to_unicode(text)
+        return super().encode(text, *args, **kwargs)
 
-    def _convert_token_to_id(self, token):
-        """Converts a token (str) in an id using the vocab."""
-        # Convert single token
-        return self.ape.convert_tokens_to_ids([token])[0]
+    def encode_plus(self, text, *args, **kwargs):
+        if isinstance(text, str):
+            text = self.translate_to_unicode(text)
+        return super().encode_plus(text, *args, **kwargs)
 
-    def _convert_id_to_token(self, index):
-        """Converts an index (integer) in a token (str) using the vocab."""
-        return self.ape.convert_ids_to_tokens([index])[0]
+    def batch_encode_plus(self, batch_text_or_text_pairs, *args, **kwargs):
+        if isinstance(batch_text_or_text_pairs, list) and isinstance(batch_text_or_text_pairs[0], str):
+            batch_text_or_text_pairs = [self.translate_to_unicode(t) for t in batch_text_or_text_pairs]
+        return super().batch_encode_plus(batch_text_or_text_pairs, *args, **kwargs)
 
-    def save_vocabulary(self, save_directory, filename_prefix=None):
-        if not os.path.isdir(save_directory):
-            os.makedirs(save_directory)
-            
-        vocab_file = os.path.join(
-            save_directory, (filename_prefix + "-" if filename_prefix else "") + "vocab.json"
-        )
-        
-        # Save the pure json vocabulary for Huggingface standard
-        with open(vocab_file, "w", encoding="utf-8") as f:
-            json.dump(self.ape.vocabulary, f, ensure_ascii=False, indent=4)
-            
-        # Also save the APE format specifics (training state, special tokens...)
-        self.ape.save_pretrained(save_directory)
-        
-        return (vocab_file,)
+    def __call__(self, text, *args, **kwargs):
+        if isinstance(text, str):
+            text = self.translate_to_unicode(text)
+        elif isinstance(text, list) and len(text) > 0 and isinstance(text[0], str):
+             text = [self.translate_to_unicode(t) for t in text]
+        return super().__call__(text, *args, **kwargs)
+
+    # Intercept return decodes
+    def decode(self, token_ids, *args, **kwargs):
+        decoded_unicode = super().decode(token_ids, *args, **kwargs)
+        return self.decode_from_unicode(decoded_unicode)
+
+    def batch_decode(self, sequences, *args, **kwargs):
+        decoded_batch = super().batch_decode(sequences, *args, **kwargs)
+        return [self.decode_from_unicode(d) for d in decoded_batch]

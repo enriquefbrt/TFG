@@ -1,56 +1,104 @@
 import os
 import argparse
 import pandas as pd
-from tfg_molecular_generation.ape_tokenizer import APETokenizer
+import re
+import json
+import time
+
+# Prevenir advertencias de paralelismo en tokenizers
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+from tokenizers import Tokenizer
+from tokenizers.models import BPE
+from tokenizers.trainers import BpeTrainer
+
+# Regex pura extraída del APE original
+SMILES_REGEX_PATTERN = r"\[[^\]]+\]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\\\|\/|:|~|@|\?|>|\*|\$|\%[0-9]{2}|[0-9]"
 
 def main():
-    parser = argparse.ArgumentParser(description="Train custom APETokenizer on a SMILES dataset.")
-    parser.add_argument("--input_csv", type=str, required=True, help="Path to the CSV file containing SMILES.")
-    parser.add_argument("--smiles_col", type=str, default="smiles", help="Name of the column containing SMILES strings.")
-    parser.add_argument("--output_dir", type=str, default="./models/ape_tokenizer", help="Directory to save the trained tokenizer.")
-    parser.add_argument("--max_vocab_size", type=int, default=5000, help="Maximum vocabulary size.")
-    parser.add_argument("--min_freq_for_merge", type=int, default=2000, help="Minimum frequency required to merge a pair.")
-    parser.add_argument("--save_checkpoint", action="store_true", help="Whether to save checkpoint models during training.")
+    parser = argparse.ArgumentParser(description="Tren Tokenizador APE acelerado por Unicode & Rust")
+    parser.add_argument("--input_csv", type=str, required=True, help="Path al CSV de las moléculas.")
+    parser.add_argument("--smiles_col", type=str, default="smiles", help="Columna SMILES.")
+    parser.add_argument("--output_dir", type=str, default="./models/ape_tokenizer", help="Directorio.)")
+    parser.add_argument("--max_vocab_size", type=int, default=5000, help="Tamaño max vocab")
+    parser.add_argument("--min_freq_for_merge", type=int, default=1500, help="Frecuencia mínima para unir")
     
     args = parser.parse_args()
 
-    # 1. Load data
-    print(f"Loading dataset from {args.input_csv}...")
-    try:
-        df = pd.read_csv(args.input_csv)
-    except Exception as e:
-        print(f"Error loading CSV: {e}")
-        return
-
-    if args.smiles_col not in df.columns:
-        raise ValueError(f"Column '{args.smiles_col}' not found in the CSV. Available columns: {list(df.columns)}")
-
-    # Extract SMILES as a list of strings
+    # 1. Cargar Data
+    print(f"Cargando dataset {args.input_csv}...")
+    df = pd.read_csv(args.input_csv)
     smiles_list = df[args.smiles_col].dropna().astype(str).tolist()
-    print(f"Loaded {len(smiles_list)} valid SMILES strings.")
+    print(f"[{len(smiles_list)} Moléculas Cargadas]")
 
-    # 2. Initialize Tokenizer
-    print("Initializing original APETokenizer (Python)...")
-    tokenizer = APETokenizer()
+    # 2. Extraer Átomos del Espacio Químico
+    print(">> Analizando moléculas y detectando átomos APE únicos...")
+    pattern = re.compile(SMILES_REGEX_PATTERN)
+    unique_tokens = set()
+    for sm in smiles_list:
+        unique_tokens.update(pattern.findall(sm))
 
-    # 3. Train Tokenizer
-    print(f"Starting APE training with max_vocab_size={args.max_vocab_size} and min_freq_for_merge={args.min_freq_for_merge}...")
-    print("WARNING: This pure-Python script may take hours for millions of molecules. Consider taking a coffee break.")
+    multi_char_tokens = {t for t in unique_tokens if len(t) > 1}
+    single_char_tokens = {t for t in unique_tokens if len(t) == 1}
+
+    print(f">> Átomos complejos descubiertos: {len(multi_char_tokens)}")
+
+    # 3. Construir Biyección PUA (Private Use Area Unicode)
+    token_to_unicode = {}
+    unicode_to_token = {}
+    START_CODE = 0xE000 
+    for i, token in enumerate(multi_char_tokens):
+        char = chr(START_CODE + i)
+        token_to_unicode[token] = char
+        unicode_to_token[char] = token
+
+    def translate_to_unicode(sm):
+        return "".join(token_to_unicode.get(p, p) for p in pattern.findall(sm))
+
+    # 4. Traducir dataset
+    print(f">> Traduciendo las {len(smiles_list)} moléculas al Espacio Unicode 1D...")
+    t0 = time.time()
+    mapped_smiles = [translate_to_unicode(sm) for sm in smiles_list]
+    print(f"Traducción lista en {time.time()-t0:.2f}s")
+
+    # 5. Entrenar Tokenizador en BPE Nativo Rust
+    initial_alphabet = list(single_char_tokens) + list(unicode_to_token.keys())
     
-    # We pass the loaded SMILES list as the corpus
-    tokenizer.train(
-        corpus=smiles_list,
-        type="smiles", 
-        max_vocab_size=args.max_vocab_size,
-        min_freq_for_merge=args.min_freq_for_merge,
-        save_checkpoint=args.save_checkpoint,
-        checkpoint_path=os.path.join(args.output_dir, "checkpoints")
+    tokenizer = Tokenizer(BPE(unk_token="<unk>"))
+    trainer = BpeTrainer(
+        vocab_size=args.max_vocab_size,
+        min_frequency=args.min_freq_for_merge,
+        special_tokens=["<pad>", "<s>", "</s>", "<unk>", "<mask>"],
+        initial_alphabet=initial_alphabet,
+        show_progress=True
     )
 
-    # 4. Save Final Tokenizer
+    print(f">> 💪 Pasando dataset a RUST T5 Tokenizer (freq>={args.min_freq_for_merge})...")
+    t1 = time.time()
+    tokenizer.train_from_iterator(mapped_smiles, trainer=trainer)
+    print(f">> 🏎️ Entrenamiento BPE Rust finalizado en {time.time()-t1:.2f}s!")
+
+    # 6. Guardar Todo (Modelo y Mapeos)
     os.makedirs(args.output_dir, exist_ok=True)
-    tokenizer.save_pretrained(args.output_dir)
-    print(f"Tokenizer vocabulary and training state saved successfully to {args.output_dir}")
+    
+    # Modelo HuggingFace
+    hf_path = os.path.join(args.output_dir, "tokenizer.json")
+    tokenizer.save(hf_path)
+    
+    # Diccionarios de Traducción
+    mapping_path = os.path.join(args.output_dir, "unicode_mapping.json")
+    with open(mapping_path, "w") as f:
+        json.dump({
+            "token_to_unicode": token_to_unicode,
+            "unicode_to_token": unicode_to_token
+        }, f, indent=2)
+
+    print(f"✅ ¡Todo guardado con éxito en {args.output_dir}!")
+    
+    # Decodificar log para humano
+    hf_vocab = tokenizer.get_vocab()
+    print(f"\n📊 RESULTADOS FINALES:")
+    print(f"Tokens Generados Reales: {len(hf_vocab)}")
 
 if __name__ == "__main__":
     main()

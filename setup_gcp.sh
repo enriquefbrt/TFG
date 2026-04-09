@@ -56,8 +56,6 @@ else
     echo "[2,3,4/4] ¡Dataset 'guacamol_completo_1.6M.csv' ya existe! Omitiendo descarga."
 fi
 
-head -n 300000 data/guacamol_completo_1.6M.csv > data/guacamol_subset.csv
-
 echo "=========================================="
 echo "  INSTALACIÓN Y DATOS COMPLETADOS AL 100%"
 echo "=========================================="
