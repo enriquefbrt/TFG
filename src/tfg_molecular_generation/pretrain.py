@@ -124,8 +124,8 @@ def main():
         weight_decay=0.01,
         save_total_limit=3,
         num_train_epochs=args.epochs,
-        predict_with_generate=True,      # Needed to compute generation metrics later
-        fp16=True,                       # Critical for NVIDIA T4: Mixed Precision halves VRAM and doubles speed
+        predict_with_generate=True,
+        bf16=True,                       # Critical T5 Fix: bf16 avoids NaN gradient explosions that fp16 suffers from
         dataloader_num_workers=4,        
         push_to_hub=False,
         logging_steps=100,
