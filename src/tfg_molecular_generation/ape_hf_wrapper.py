@@ -29,7 +29,10 @@ class APEHuggingFaceTokenizer(PreTrainedTokenizerFast):
             self.token_to_unicode = mapping["token_to_unicode"]
             self.unicode_to_token = mapping["unicode_to_token"]
 
-        self.pattern = re.compile(r"\[[^\]]+\]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\\\|\/|:|~|@|\?|>|\*|\$|\%[0-9]{2}|[0-9]")
+        self.pattern = re.compile(
+            r"</R\d+>|<R\d+>|\[[^\]]+\]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|"
+            r"\(|\)|\.|=|#|-|\+|\\\\|\/|:|~|@|\?|<|>|\*|\$|\%[0-9]{2}|[0-9]|."
+        )
 
         super().__init__(
             tokenizer_file=tokenizer_file,

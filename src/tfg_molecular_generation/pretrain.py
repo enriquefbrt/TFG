@@ -6,11 +6,18 @@ from transformers import (
     T5ForConditionalGeneration, 
     Seq2SeqTrainingArguments, 
     Seq2SeqTrainer,
-    DataCollatorForSeq2Seq
+    DataCollatorForSeq2Seq,
+    EarlyStoppingCallback,
 )
 from datasets import Dataset
 
 from tfg_molecular_generation.ape_hf_wrapper import APEHuggingFaceTokenizer
+from tfg_molecular_generation.decorator_utils import (
+    attach_decorators_to_scaffold,
+    is_decorator_sequence,
+    smiles_to_scaffold_and_decorators,
+)
+from tfg_molecular_generation.data_prep import generate_random_smiles
 
 MODEL_NAME = "google/t5-v1_1-base"
 
@@ -20,54 +27,141 @@ def _ensure_list(values):
         return values
     return [values]
 
-def load_and_tokenize_data(csv_path: str, tokenizer, max_input_length=128, max_target_length=128):
-    """
-    Loads pre-training data (scaffold -> original_smiles) and sets up dynamic tokenization.
-    """
-    from tfg_molecular_generation.data_prep import generate_random_smiles
 
-    df = pd.read_csv(csv_path)
-    required_columns = {"input_text", "target_text"}
-    missing_columns = required_columns - set(df.columns)
-    if missing_columns:
-        raise ValueError(
-            f"Missing required columns in {csv_path}: {sorted(missing_columns)}. "
-            "Expected columns: ['input_text', 'target_text']"
+def _build_training_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Normalizes supported CSV formats into rows with:
+    - source_smiles (may be empty for static-only rows)
+    - input_text    (fallback scaffold with [*:i])
+    - target_text   (fallback decorator sequence)
+
+    Supported inputs:
+    - New format: source_smiles + input_text + target_text
+    - Decorator static format: input_text + target_text (target already decorated)
+    - Legacy format: input_text + target_text where target_text is full SMILES
+    """
+    normalized_rows = []
+    skipped = 0
+
+    for _, row in df.iterrows():
+        source_smiles = ""
+        input_text = ""
+        target_text = ""
+
+        if "source_smiles" in df.columns:
+            val = row.get("source_smiles")
+            source_smiles = "" if pd.isna(val) else str(val).strip()
+        if "input_text" in df.columns:
+            val = row.get("input_text")
+            input_text = "" if pd.isna(val) else str(val).strip()
+        if "target_text" in df.columns:
+            val = row.get("target_text")
+            target_text = "" if pd.isna(val) else str(val).strip()
+
+        fallback_pair = None
+
+        # If static decorator pair is provided, keep it as fallback.
+        if input_text and target_text and is_decorator_sequence(target_text):
+            fallback_pair = (input_text, target_text)
+
+        # Legacy path: target_text may be a full molecule SMILES.
+        if not source_smiles and target_text and not is_decorator_sequence(target_text):
+            source_smiles = target_text
+
+        # If fallback pair is still missing, derive it from source_smiles.
+        if fallback_pair is None and source_smiles:
+            fallback_pair = smiles_to_scaffold_and_decorators(source_smiles)
+
+        if fallback_pair is None:
+            skipped += 1
+            continue
+
+        fallback_input, fallback_target = fallback_pair
+        if not source_smiles:
+            try:
+                source_smiles = attach_decorators_to_scaffold(fallback_input, fallback_target)
+            except Exception:
+                source_smiles = ""
+        normalized_rows.append(
+            {
+                "source_smiles": source_smiles,
+                "input_text": fallback_input,
+                "target_text": fallback_target,
+            }
         )
 
-    # Ensure there are no NaNs/empty strings in the required columns
-    rows_before_clean = len(df)
-    df = df.dropna(subset=["input_text", "target_text"]).copy()
-    df["input_text"] = df["input_text"].astype(str).str.strip()
-    df["target_text"] = df["target_text"].astype(str).str.strip()
-    df = df[(df["input_text"] != "") & (df["target_text"] != "")]
+    if skipped:
+        print(
+            f"[Data Format] Skipped {skipped} rows that could not be converted to scaffold+decorators."
+        )
+    return pd.DataFrame(normalized_rows)
 
-    rows_dropped = rows_before_clean - len(df)
-    if rows_dropped > 0:
-        print(f"[Data Quality] Dropped {rows_dropped} rows with empty/invalid input_text or target_text.")
-    if df.empty:
-        raise ValueError(f"No valid rows left in {csv_path} after cleaning.")
+def load_and_tokenize_data(csv_path: str, tokenizer, max_input_length=128, max_target_length=128):
+    """
+    Loads data and sets up on-the-fly dynamic preprocessing.
+    If source_smiles is present, each batch sample is randomized and then decomposed
+    to scaffold+decorators at runtime (epoch-dependent augmentation).
+    """
+    df = pd.read_csv(csv_path)
+    supported = {"source_smiles", "input_text", "target_text"} & set(df.columns)
+    if not supported:
+        raise ValueError(
+            f"{csv_path} has no supported columns. Expected at least one of "
+            "['source_smiles', 'input_text', 'target_text']."
+        )
+
+    rows_before_clean = len(df)
+    df = _build_training_rows(df)
+    rows_after_clean = len(df)
+    if rows_after_clean == 0:
+        raise ValueError(f"No valid rows left in {csv_path} after conversion/cleaning.")
+    if rows_after_clean < rows_before_clean:
+        print(
+            f"[Data Quality] Dropped {rows_before_clean - rows_after_clean} invalid rows during normalization."
+        )
+
+    dynamic_rows = int((df["source_smiles"].astype(str).str.strip() != "").sum())
+    print(
+        f"[Data Format] Loaded {rows_after_clean} rows from {csv_path}. "
+        f"Dynamic source_smiles rows: {dynamic_rows}."
+    )
     
     # Convert pandas dataframe to HuggingFace Dataset
     dataset = Dataset.from_pandas(df)
     
-    # We use a transform function which is applied ON-THE-FLY dynamically during dataloading per epoch
+    # We use a transform function applied on-the-fly during dataloading.
     def preprocess_transform(examples):
-        input_column = _ensure_list(examples["input_text"])
-        target_column = _ensure_list(examples["target_text"])
+        input_column = [str(x) for x in _ensure_list(examples["input_text"])]
+        target_column = [str(x) for x in _ensure_list(examples["target_text"])]
+        source_column = (
+            [str(x) for x in _ensure_list(examples["source_smiles"])]
+            if "source_smiles" in examples
+            else [""] * len(input_column)
+        )
 
-        # inputs: Scaffold (static)
-        inputs = [str(ex) for ex in input_column]
-        
-        # targets: Original Molecule (DYNAMICALY AUGMENTED)
-        original_targets = [str(ex) for ex in target_column]
+        # If source_smiles is available, randomize molecule and recompute scaffold+decorators
+        # online so each epoch sees fresh randomized writing and its corresponding scaffold.
+        inputs = []
         targets = []
-        for t in original_targets:
-            # On-the-fly SMILES randomization 
-            # We ask for 1 random variant per molecule just-in-time
-            r_smiles = generate_random_smiles(t, num_random=1)
-            # If RDKit somehow fails to randomize, fallback to the original SMILES
-            targets.append(r_smiles[0] if r_smiles else t)
+        for fallback_input, fallback_target, source_smiles in zip(
+            input_column, target_column, source_column
+        ):
+            source_smiles = source_smiles.strip()
+            if source_smiles:
+                randomized = generate_random_smiles(source_smiles, num_random=1)
+                sampled_smiles = randomized[0] if randomized else source_smiles
+                pair = smiles_to_scaffold_and_decorators(sampled_smiles)
+                if pair is None and sampled_smiles != source_smiles:
+                    pair = smiles_to_scaffold_and_decorators(source_smiles)
+                if pair is not None:
+                    in_text, out_text = pair
+                    inputs.append(in_text)
+                    targets.append(out_text)
+                    continue
+
+            # Static fallback if dynamic conversion fails.
+            inputs.append(fallback_input)
+            targets.append(fallback_target)
         
         # Tokenize Inputs (Encoder)
         model_inputs = tokenizer(
@@ -152,6 +246,24 @@ def main():
     parser.add_argument("--batch_size", type=int, default=16, help="Batch size per device")
     parser.add_argument("--learning_rate", type=float, default=3e-5, help="Learning rate")
     parser.add_argument(
+        "--logging_steps",
+        type=int,
+        default=20,
+        help="Log training metrics every N optimizer steps (lower gives denser curves).",
+    )
+    parser.add_argument(
+        "--early_stopping_patience",
+        type=int,
+        default=1,
+        help="Early stopping patience in evaluation rounds (epoch-level with current config). Set <=0 to disable.",
+    )
+    parser.add_argument(
+        "--early_stopping_threshold",
+        type=float,
+        default=0.0,
+        help="Minimum eval_loss improvement to reset early stopping patience.",
+    )
+    parser.add_argument(
         "--precision",
         type=str,
         default="auto",
@@ -177,15 +289,37 @@ def main():
     
     # Ensure the model's vocabulary size matches the tokenizer 
     model.resize_token_embeddings(len(tokenizer))
+
+    # Align generation-related IDs with tokenizer, so EOS is consistently learned/used.
+    if tokenizer.pad_token_id is not None:
+        model.config.pad_token_id = tokenizer.pad_token_id
+    if tokenizer.eos_token_id is not None:
+        model.config.eos_token_id = tokenizer.eos_token_id
+    if model.config.decoder_start_token_id is None:
+        model.config.decoder_start_token_id = (
+            tokenizer.pad_token_id if tokenizer.pad_token_id is not None else tokenizer.bos_token_id
+        )
     
     # 2. Setup Data
     if not os.path.exists(args.train_data):
         print(f"Warning: {args.train_data} not found. Running a mock training check...")
         # Create a tiny mock dataset for validation to ensure compilation works
-        df_mock = pd.DataFrame({
-            "input_text": ["O=C(NCc1ccccc1)c1cccnc1", "c1ccccc1"],
-            "target_text": ["CC1=CN=C(C(=C1O)C(=O)NCC2=CC=CC=C2)C3=CC=C(C=C3)Cl", "Cc1ccccc1C(C)N"]
-        })
+        df_mock = pd.DataFrame(
+            {
+            "source_smiles": [
+                "NCCc1ccccc1",
+                "NCCc1ccc(F)cc1",
+            ],
+            "input_text": [
+                "c1ccc([*:1])cc1",
+                "c1cc([*:1])ccc1[*:2]",
+            ],
+            "target_text": [
+                "<R1> [*:1]CCN </R1>",
+                "<R1> [*:1]F </R1> <R2> [*:2]CCN </R2>",
+            ],
+            }
+        )
         os.makedirs(os.path.dirname(args.train_data) or ".", exist_ok=True)
         df_mock.iloc[:1].to_csv(args.train_data, index=False)
         df_mock.iloc[1:].to_csv(args.val_data, index=False)
@@ -199,6 +333,7 @@ def main():
         output_dir=args.output_dir,
         eval_strategy="epoch",
         save_strategy="epoch",
+        logging_strategy="steps",
         learning_rate=args.learning_rate,
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
@@ -210,17 +345,31 @@ def main():
         fp16=use_fp16,
         dataloader_num_workers=4,        
         push_to_hub=False,
-        logging_steps=100,
+        logging_steps=args.logging_steps,
+        logging_first_step=True,
         warmup_ratio=0.03,
         max_grad_norm=1.0,
         optim="adafactor",
         logging_nan_inf_filter=False,
         remove_unused_columns=False,
+        report_to="none",
+        load_best_model_at_end=args.early_stopping_patience > 0,
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
     )
     
     # Data collator manages the dynamic padding of the batches
     data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
     
+    callbacks = []
+    if args.early_stopping_patience > 0:
+        callbacks.append(
+            EarlyStoppingCallback(
+                early_stopping_patience=args.early_stopping_patience,
+                early_stopping_threshold=args.early_stopping_threshold,
+            )
+        )
+
     # 4. Initialize Trainer
     trainer = Seq2SeqTrainer(
         model=model,
@@ -229,6 +378,7 @@ def main():
         eval_dataset=eval_dataset,
         processing_class=tokenizer,
         data_collator=data_collator,
+        callbacks=callbacks,
     )
     
     # 5. Handle Spot Instance Preemptions (Resume from Checkpoint)

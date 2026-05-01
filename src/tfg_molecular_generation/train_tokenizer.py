@@ -10,10 +10,17 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from tokenizers import Tokenizer
 from tokenizers.models import BPE
+from tokenizers.processors import TemplateProcessing
 from tokenizers.trainers import BpeTrainer
 
-# Pure Regex extracted from the original APE
-SMILES_REGEX_PATTERN = r"\[[^\]]+\]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\\\|\/|:|~|@|\?|>|\*|\$|\%[0-9]{2}|[0-9]"
+# Extended regex:
+# - molecular tokens
+# - decorator tags (<R1>...</R1>)
+# - fallback '.' to avoid dropping unseen characters
+SMILES_REGEX_PATTERN = (
+    r"</R\d+>|<R\d+>|\[[^\]]+\]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|"
+    r"\(|\)|\.|=|#|-|\+|\\\\|\/|:|~|@|\?|<|>|\*|\$|\%[0-9]{2}|[0-9]|."
+)
 
 def main():
     parser = argparse.ArgumentParser(description="Accelerated APE Tokenizer Training via Unicode & Rust")
@@ -62,7 +69,8 @@ def main():
     print(f"Translation completed in {time.time()-t0:.2f}s")
 
     # 5. Train Tokenizer on Native Rust BPE
-    initial_alphabet = list(single_char_tokens) + list(unicode_to_token.keys())
+    decorator_chars = ["<", ">", "/", "R"]
+    initial_alphabet = sorted(set(single_char_tokens) | set(unicode_to_token.keys()) | set(decorator_chars))
     
     tokenizer = Tokenizer(BPE(unk_token="<unk>"))
     trainer = BpeTrainer(
@@ -77,6 +85,17 @@ def main():
     t1 = time.time()
     tokenizer.train_from_iterator(mapped_smiles, trainer=trainer)
     print(f">> BPE Rust training finished in {time.time()-t1:.2f}s!")
+
+    # Configure special-token wrapping so add_special_tokens=True appends EOS
+    # automatically (T5-style) for both source and target sequences.
+    eos_id = tokenizer.token_to_id("</s>")
+    if eos_id is None:
+        raise ValueError("Could not find </s> in tokenizer vocabulary after training.")
+    tokenizer.post_processor = TemplateProcessing(
+        single="$A </s>",
+        pair="$A </s> $B </s>",
+        special_tokens=[("</s>", eos_id)],
+    )
 
     # 6. Save Everything (Model and Mappings)
     os.makedirs(args.output_dir, exist_ok=True)

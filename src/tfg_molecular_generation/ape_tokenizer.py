@@ -108,7 +108,10 @@ class APETokenizer:
         """
         # words = re.findall(r"\[[^\]]*\]", molecule)
 
-        pattern = r"(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\\\|\/|:|~|@|\?|>|\*|\$|\%[0-9]{2}|[0-9])"
+        pattern = (
+            r"(</R\d+>|<R\d+>|\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|"
+            r"\(|\)|\.|=|#|-|\+|\\\\|\/|:|~|@|\?|<|>|\*|\$|\%[0-9]{2}|[0-9]|.)"
+        )
         words = re.findall(pattern, molecule)
 
         return words
