@@ -340,7 +340,8 @@ def main():
         weight_decay=0.01,
         save_total_limit=3,
         num_train_epochs=args.epochs,
-        predict_with_generate=True,
+        # We optimize pretraining speed by evaluating with loss only.
+        predict_with_generate=False,
         bf16=use_bf16,
         fp16=use_fp16,
         dataloader_num_workers=4,        
