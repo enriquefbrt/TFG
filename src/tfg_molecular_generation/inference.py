@@ -23,6 +23,44 @@ def clean_decoded_text(text: str) -> str:
     return " ".join(cleaned.split())
 
 
+def load_model_for_inference(model_dir: str):
+    """
+    Loads either:
+    - a full T5 checkpoint directory, or
+    - a PEFT adapter directory (adapter_config.json + adapter weights).
+    """
+    try:
+        model = T5ForConditionalGeneration.from_pretrained(model_dir)
+        print(f"Loaded full model from {model_dir}")
+        return model
+    except Exception as full_model_exc:
+        adapter_config_path = os.path.join(model_dir, "adapter_config.json")
+        if not os.path.isfile(adapter_config_path):
+            raise RuntimeError(
+                f"Could not load model from {model_dir} as full checkpoint, "
+                "and no adapter_config.json was found for PEFT fallback."
+            ) from full_model_exc
+
+        try:
+            from peft import PeftConfig, PeftModel
+        except ModuleNotFoundError as exc:
+            raise ModuleNotFoundError(
+                "Detected LoRA adapter directory, but PEFT is not installed. "
+                "Install it in inference environment: pip install peft"
+            ) from exc
+
+        peft_config = PeftConfig.from_pretrained(model_dir)
+        base_model = T5ForConditionalGeneration.from_pretrained(
+            peft_config.base_model_name_or_path
+        )
+        model = PeftModel.from_pretrained(base_model, model_dir)
+        print(
+            f"Loaded PEFT adapter from {model_dir} "
+            f"on base {peft_config.base_model_name_or_path}"
+        )
+        return model
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Scaffold-conditioned decorator generation and deterministic scaffold assembly."
@@ -60,7 +98,7 @@ def main():
 
     print("Loading tokenizer and model...")
     tokenizer = APEHuggingFaceTokenizer(ape_tokenizer_path=args.tokenizer_dir)
-    model = T5ForConditionalGeneration.from_pretrained(args.model_dir)
+    model = load_model_for_inference(args.model_dir)
 
     if tokenizer.pad_token_id is not None:
         model.config.pad_token_id = tokenizer.pad_token_id

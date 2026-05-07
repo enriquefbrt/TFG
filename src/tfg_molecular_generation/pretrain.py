@@ -2,6 +2,7 @@ import os
 import argparse
 import torch
 import pandas as pd
+from typing import List
 from transformers import (
     T5ForConditionalGeneration, 
     Seq2SeqTrainingArguments, 
@@ -26,6 +27,79 @@ def _ensure_list(values):
     if isinstance(values, list):
         return values
     return [values]
+
+
+def parse_csv_list(raw: str) -> List[str]:
+    """Parses a comma-separated argument into a clean list."""
+    if raw is None:
+        return []
+    return [item.strip() for item in str(raw).split(",") if item.strip()]
+
+
+def print_trainable_parameter_summary(model):
+    """Prints a concise trainable/total parameter summary."""
+    total_params = 0
+    trainable_params = 0
+    for param in model.parameters():
+        param_count = param.numel()
+        total_params += param_count
+        if param.requires_grad:
+            trainable_params += param_count
+    ratio = 100.0 * trainable_params / total_params if total_params else 0.0
+    print(
+        f"[Trainable Params] trainable={trainable_params:,} / total={total_params:,} "
+        f"({ratio:.2f}%)"
+    )
+
+
+def maybe_apply_lora(model, args):
+    """
+    Wraps model with PEFT LoRA adapters when requested.
+    """
+    if not args.use_lora:
+        return model
+
+    if args.lora_r <= 0:
+        raise ValueError("--lora_r must be > 0 when --use_lora is enabled.")
+
+    target_modules = parse_csv_list(args.lora_target_modules)
+    if not target_modules:
+        raise ValueError(
+            "--lora_target_modules must define at least one module "
+            "(for T5, defaults like 'q,v' are recommended)."
+        )
+    modules_to_save = parse_csv_list(args.lora_modules_to_save) or None
+
+    try:
+        from peft import LoraConfig, TaskType, get_peft_model
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError(
+            "LoRA requested but PEFT is not installed. "
+            "Install it in your training environment: pip install peft"
+        ) from exc
+
+    lora_config = LoraConfig(
+        task_type=TaskType.SEQ_2_SEQ_LM,
+        inference_mode=False,
+        r=args.lora_r,
+        lora_alpha=args.lora_alpha,
+        lora_dropout=args.lora_dropout,
+        target_modules=target_modules,
+        bias=args.lora_bias,
+        modules_to_save=modules_to_save,
+    )
+    model = get_peft_model(model, lora_config)
+    print(
+        "[LoRA] Enabled with "
+        f"r={args.lora_r}, alpha={args.lora_alpha}, dropout={args.lora_dropout}, "
+        f"targets={target_modules}, bias={args.lora_bias}, "
+        f"modules_to_save={modules_to_save or []}"
+    )
+    if hasattr(model, "print_trainable_parameters"):
+        model.print_trainable_parameters()
+    else:
+        print_trainable_parameter_summary(model)
+    return model
 
 
 def _build_training_rows(df: pd.DataFrame) -> pd.DataFrame:
@@ -238,6 +312,12 @@ def resolve_precision_mode(requested_precision: str):
 
 def main():
     parser = argparse.ArgumentParser(description="TFG Molecular Generation Pre-training")
+    parser.add_argument(
+        "--model_name_or_path",
+        type=str,
+        default=MODEL_NAME,
+        help="Base checkpoint to train from (HF id or local path).",
+    )
     parser.add_argument("--train_data", type=str, default="data/pretrain_t5_train.csv", help="Path to training CSV")
     parser.add_argument("--val_data", type=str, default="data/pretrain_t5_val.csv", help="Path to validation CSV")
     parser.add_argument("--tokenizer_dir", type=str, required=True, help="Directory of the trained APETokenizer")
@@ -270,6 +350,56 @@ def main():
         choices=["auto", "bf16", "fp16", "fp32"],
         help="Training precision mode. 'auto' prefers bf16 on supported GPUs.",
     )
+    parser.add_argument(
+        "--use_lora",
+        action="store_true",
+        help="Enable LoRA PEFT fine-tuning (parameter-efficient).",
+    )
+    parser.add_argument(
+        "--lora_r",
+        type=int,
+        default=16,
+        help="LoRA rank.",
+    )
+    parser.add_argument(
+        "--lora_alpha",
+        type=int,
+        default=32,
+        help="LoRA alpha scaling.",
+    )
+    parser.add_argument(
+        "--lora_dropout",
+        type=float,
+        default=0.05,
+        help="LoRA dropout.",
+    )
+    parser.add_argument(
+        "--lora_target_modules",
+        type=str,
+        default="q,v",
+        help="Comma-separated module names to LoRA-adapt (e.g. 'q,v' for T5 attention).",
+    )
+    parser.add_argument(
+        "--lora_bias",
+        type=str,
+        default="none",
+        choices=["none", "all", "lora_only"],
+        help="Bias handling strategy for LoRA adapters.",
+    )
+    parser.add_argument(
+        "--lora_modules_to_save",
+        type=str,
+        default="",
+        help=(
+            "Optional comma-separated non-LoRA modules to keep trainable/saved "
+            "(e.g. 'lm_head'). Empty means none."
+        ),
+    )
+    parser.add_argument(
+        "--lora_save_adapter_only",
+        action="store_true",
+        help="If set, only saves final adapter weights (no merged full model).",
+    )
     
     args = parser.parse_args()
     use_bf16, use_fp16, resolved_precision = resolve_precision_mode(args.precision)
@@ -284,8 +414,8 @@ def main():
         
     tokenizer = APEHuggingFaceTokenizer(ape_tokenizer_path=args.tokenizer_dir)
     
-    # We load the t5-small architecture base (parameters optimized for NLP, ready to unlearn and learn chemistry)
-    model = T5ForConditionalGeneration.from_pretrained(MODEL_NAME)
+    # Load base architecture/checkpoint.
+    model = T5ForConditionalGeneration.from_pretrained(args.model_name_or_path)
     
     # Ensure the model's vocabulary size matches the tokenizer 
     model.resize_token_embeddings(len(tokenizer))
@@ -299,6 +429,7 @@ def main():
         model.config.decoder_start_token_id = (
             tokenizer.pad_token_id if tokenizer.pad_token_id is not None else tokenizer.bos_token_id
         )
+    model = maybe_apply_lora(model, args)
     
     # 2. Setup Data
     if not os.path.exists(args.train_data):
@@ -401,8 +532,31 @@ def main():
     trainer.train(resume_from_checkpoint=last_checkpoint)
     print("Training finished!")
     
-    # 6. Save the final model and tokenizer state
+    # 6. Save final artifacts
     final_output_path = f"{args.output_dir}_FINAL"
+    if args.use_lora:
+        adapter_output_path = f"{args.output_dir}_FINAL_ADAPTER"
+        print(f"Saving final LoRA adapter and tokenizer to {adapter_output_path}")
+        trainer.save_model(adapter_output_path)
+        tokenizer.save_pretrained(adapter_output_path)
+
+        if args.lora_save_adapter_only:
+            print("LoRA adapter-only save requested. Skipping merged full model export.")
+            print("All done!")
+            return
+
+        if not hasattr(trainer.model, "merge_and_unload"):
+            raise RuntimeError(
+                "Expected a PEFT model with merge_and_unload(), but method was not found."
+            )
+
+        print(f"Merging LoRA into base model and saving full model to {final_output_path}")
+        merged_model = trainer.model.merge_and_unload()
+        merged_model.save_pretrained(final_output_path)
+        tokenizer.save_pretrained(final_output_path)
+        print("All done!")
+        return
+
     print(f"Saving final model and tokenizer to {final_output_path}")
     trainer.save_model(final_output_path)
     tokenizer.save_pretrained(final_output_path)
