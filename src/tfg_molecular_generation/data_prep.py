@@ -2,6 +2,7 @@ import pandas as pd
 from rdkit import Chem
 from rdkit.Chem.Scaffolds import MurckoScaffold
 
+from tfg_molecular_generation.csv_utils import read_csv_auto_sep
 from tfg_molecular_generation.decorator_utils import smiles_to_scaffold_and_decorators
 
 def extract_scaffold(smiles: str) -> str:
@@ -57,7 +58,8 @@ def prepare_pretraining_dataset(input_csv: str, output_csv: str, smiles_col: str
     T5 Decoder: [Decorator sequence with <Ri> [*:i]... </Ri>]
     """
     print(f"Loading dataset from {input_csv}...")
-    df = pd.read_csv(input_csv)
+    df, detected_sep = read_csv_auto_sep(input_csv)
+    print(f"[CSV] Detected separator: {repr(detected_sep)}")
     
     if smiles_col not in df.columns:
         raise ValueError(f"Column '{smiles_col}' not found in the CSV.")
@@ -98,7 +100,8 @@ def prepare_finetuning_dataset(input_csv: str, output_csv: str, smiles_col: str 
     T5 Decoder: [Decorator sequence with <Ri> [*:i]... </Ri>]
     """
     print(f"Loading finetuning dataset from {input_csv}...")
-    df = pd.read_csv(input_csv)
+    df, detected_sep = read_csv_auto_sep(input_csv)
+    print(f"[CSV] Detected separator: {repr(detected_sep)}")
     
     augmented_data = []
     

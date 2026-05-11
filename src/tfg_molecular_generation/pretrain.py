@@ -13,6 +13,7 @@ from transformers import (
 from datasets import Dataset
 
 from tfg_molecular_generation.ape_hf_wrapper import APEHuggingFaceTokenizer
+from tfg_molecular_generation.csv_utils import read_csv_auto_sep
 from tfg_molecular_generation.decorator_utils import (
     attach_decorators_to_scaffold,
     is_decorator_sequence,
@@ -176,7 +177,8 @@ def load_and_tokenize_data(csv_path: str, tokenizer, max_input_length=128, max_t
     If source_smiles is present, each batch sample is randomized and then decomposed
     to scaffold+decorators at runtime (epoch-dependent augmentation).
     """
-    df = pd.read_csv(csv_path)
+    df, detected_sep = read_csv_auto_sep(csv_path)
+    print(f"[CSV] {csv_path}: detected separator {repr(detected_sep)}")
     supported = {"source_smiles", "input_text", "target_text"} & set(df.columns)
     if not supported:
         raise ValueError(

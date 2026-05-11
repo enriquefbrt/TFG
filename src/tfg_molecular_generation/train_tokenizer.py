@@ -1,6 +1,5 @@
 import os
 import argparse
-import pandas as pd
 import re
 import json
 import time
@@ -12,6 +11,7 @@ from tokenizers import Tokenizer
 from tokenizers.models import BPE
 from tokenizers.processors import TemplateProcessing
 from tokenizers.trainers import BpeTrainer
+from tfg_molecular_generation.csv_utils import read_csv_auto_sep
 
 # Extended regex:
 # - molecular tokens
@@ -34,7 +34,8 @@ def main():
 
     # 1. Load Data
     print(f"Loading dataset {args.input_csv}...")
-    df = pd.read_csv(args.input_csv)
+    df, detected_sep = read_csv_auto_sep(args.input_csv)
+    print(f"[CSV] Detected separator: {repr(detected_sep)}")
     smiles_list = df[args.smiles_col].dropna().astype(str).tolist()
     print(f"[{len(smiles_list)} Molecules Loaded]")
 
