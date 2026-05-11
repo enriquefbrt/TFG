@@ -227,7 +227,8 @@ def write_csv(rows: List[Dict], output_csv: str, fieldnames: List[str]) -> None:
     with open(output_csv, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerows(rows)
+        for row in rows:
+            writer.writerow({name: row.get(name) for name in fieldnames})
 
 
 def smooth(values: List[Optional[float]], window: int) -> List[float]:
