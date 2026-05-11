@@ -2,6 +2,7 @@ import argparse
 import ast
 import csv
 import glob
+import json
 import os
 import re
 from typing import Dict, List, Optional
@@ -96,6 +97,129 @@ def parse_log(log_path: str):
                 )
 
     return train_rows, eval_rows
+
+
+def find_latest_trainer_state(checkpoints_dir: str) -> str:
+    candidates = glob.glob(os.path.join(checkpoints_dir, "checkpoint-*", "trainer_state.json"))
+    if not candidates:
+        raise FileNotFoundError(
+            f"No trainer_state.json found under {checkpoints_dir}/checkpoint-*/"
+        )
+
+    def checkpoint_step(path: str) -> int:
+        base = os.path.basename(os.path.dirname(path))  # checkpoint-<step>
+        try:
+            return int(base.split("-")[-1])
+        except Exception:
+            return -1
+
+    return max(candidates, key=checkpoint_step)
+
+
+def parse_trainer_state(trainer_state_path: str):
+    with open(trainer_state_path, "r", encoding="utf-8", errors="replace") as f:
+        state = json.load(f)
+
+    log_history = state.get("log_history", [])
+    train_rows: List[Dict] = []
+    eval_rows: List[Dict] = []
+
+    for idx, payload in enumerate(log_history, start=1):
+        if not isinstance(payload, dict):
+            continue
+
+        # Eval rows
+        if "eval_loss" in payload:
+            eval_rows.append(
+                {
+                    "line_number": None,
+                    "epoch": to_float(payload.get("epoch")),
+                    "step": to_float(payload.get("step", payload.get("global_step"))),
+                    "eval_loss": to_float(payload.get("eval_loss")),
+                    "eval_runtime": to_float(payload.get("eval_runtime")),
+                    "eval_samples_per_second": to_float(
+                        payload.get("eval_samples_per_second")
+                    ),
+                    "eval_steps_per_second": to_float(
+                        payload.get("eval_steps_per_second")
+                    ),
+                    "_order": idx,
+                }
+            )
+            continue
+
+        # Train rows
+        if any(
+            key in payload for key in ("loss", "grad_norm", "learning_rate", "epoch", "step")
+        ):
+            train_rows.append(
+                {
+                    "line_number": None,
+                    "epoch": to_float(payload.get("epoch")),
+                    "step": to_float(payload.get("step", payload.get("global_step"))),
+                    "loss": to_float(payload.get("loss")),
+                    "grad_norm": to_float(payload.get("grad_norm")),
+                    "learning_rate": to_float(payload.get("learning_rate")),
+                    "_order": idx,
+                }
+            )
+
+    return train_rows, eval_rows
+
+
+def _row_sort_key(row: Dict):
+    epoch = row.get("epoch")
+    step = row.get("step")
+    line_number = row.get("line_number")
+    order = row.get("_order")
+    return (
+        float("inf") if epoch is None else epoch,
+        float("inf") if step is None else step,
+        float("inf") if line_number is None else line_number,
+        float("inf") if order is None else order,
+    )
+
+
+def _row_key_train(row: Dict):
+    return (
+        round(row.get("epoch"), 8) if row.get("epoch") is not None else None,
+        round(row.get("step"), 8) if row.get("step") is not None else None,
+        round(row.get("loss"), 8) if row.get("loss") is not None else None,
+        round(row.get("grad_norm"), 8) if row.get("grad_norm") is not None else None,
+        round(row.get("learning_rate"), 12)
+        if row.get("learning_rate") is not None
+        else None,
+    )
+
+
+def _row_key_eval(row: Dict):
+    return (
+        round(row.get("epoch"), 8) if row.get("epoch") is not None else None,
+        round(row.get("step"), 8) if row.get("step") is not None else None,
+        round(row.get("eval_loss"), 8) if row.get("eval_loss") is not None else None,
+        round(row.get("eval_runtime"), 8)
+        if row.get("eval_runtime") is not None
+        else None,
+        round(row.get("eval_samples_per_second"), 8)
+        if row.get("eval_samples_per_second") is not None
+        else None,
+        round(row.get("eval_steps_per_second"), 8)
+        if row.get("eval_steps_per_second") is not None
+        else None,
+    )
+
+
+def merge_rows(primary: List[Dict], secondary: List[Dict], key_fn):
+    merged = []
+    seen = set()
+    for row in primary + secondary:
+        key = key_fn(row)
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(row)
+    merged.sort(key=_row_sort_key)
+    return merged
 
 
 def write_csv(rows: List[Dict], output_csv: str, fieldnames: List[str]) -> None:
@@ -259,6 +383,29 @@ def main():
         default=20,
         help="Moving average window for train curves.",
     )
+    parser.add_argument(
+        "--trainer_state_json",
+        type=str,
+        default=None,
+        help=(
+            "Optional path to trainer_state.json. If provided, metrics are merged with log "
+            "and can recover earlier epochs not present in the current .log file."
+        ),
+    )
+    parser.add_argument(
+        "--checkpoints_dir",
+        type=str,
+        default=None,
+        help=(
+            "Optional checkpoints directory (e.g. models/t5_pretrain_scaffold_decorators). "
+            "Latest checkpoint-*/trainer_state.json will be used."
+        ),
+    )
+    parser.add_argument(
+        "--skip_trainer_state",
+        action="store_true",
+        help="Ignore trainer_state.json even if provided/detected.",
+    )
     args = parser.parse_args()
 
     if args.smoothing_window < 1:
@@ -269,6 +416,23 @@ def main():
         raise FileNotFoundError(f"Log file not found: {log_file}")
 
     train_rows, eval_rows = parse_log(log_file)
+    trainer_state_used = None
+
+    if not args.skip_trainer_state:
+        trainer_state_path = None
+        if args.trainer_state_json:
+            trainer_state_path = args.trainer_state_json
+        elif args.checkpoints_dir:
+            trainer_state_path = find_latest_trainer_state(args.checkpoints_dir)
+
+        if trainer_state_path:
+            if not os.path.isfile(trainer_state_path):
+                raise FileNotFoundError(f"trainer_state.json not found: {trainer_state_path}")
+            state_train_rows, state_eval_rows = parse_trainer_state(trainer_state_path)
+            train_rows = merge_rows(train_rows, state_train_rows, _row_key_train)
+            eval_rows = merge_rows(eval_rows, state_eval_rows, _row_key_eval)
+            trainer_state_used = trainer_state_path
+
     if not train_rows and not eval_rows:
         raise ValueError(
             f"No train/eval metrics found in {log_file}. "
@@ -307,6 +471,8 @@ def main():
     )
 
     print(f"Log used: {log_file}")
+    if trainer_state_used:
+        print(f"Trainer state used: {trainer_state_used}")
     print(f"Train rows parsed: {len(train_rows)}")
     print(f"Eval rows parsed: {len(eval_rows)}")
     print(f"Saved: {train_csv}")
