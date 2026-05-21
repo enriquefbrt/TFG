@@ -1,6 +1,7 @@
 import argparse
 import csv
 import json
+import math
 import os
 import random
 import statistics
@@ -84,6 +85,8 @@ class ScaffoldConditionedGuacaMolGenerator:
         max_new_tokens: int,
         seed: int,
         attempts_multiplier: int,
+        eval_batch_size: int = 1,
+        num_return_sequences: int = 1,
         max_input_length: int = 128,
         show_progress: bool = True,
     ):
@@ -98,9 +101,16 @@ class ScaffoldConditionedGuacaMolGenerator:
         self.max_new_tokens = max_new_tokens
         self.max_input_length = max_input_length
         self.attempts_multiplier = max(1, int(attempts_multiplier))
+        self.eval_batch_size = max(1, int(eval_batch_size))
+        self.num_return_sequences = max(1, int(num_return_sequences))
         self.show_progress = bool(show_progress)
         self.rng = random.Random(seed)
         self.stats = GenerationStats()
+        if num_beams > 1 and self.num_return_sequences > num_beams:
+            raise ValueError(
+                "num_return_sequences must be <= num_beams when num_beams > 1. "
+                f"Got num_return_sequences={self.num_return_sequences}, num_beams={num_beams}."
+            )
 
         self.tokenizer = APEHuggingFaceTokenizer(ape_tokenizer_path=tokenizer_dir)
         self.model = load_model_for_inference(model_dir)
@@ -127,18 +137,27 @@ class ScaffoldConditionedGuacaMolGenerator:
         return self.rng.choice(self.scaffold_pool)
 
     def _generate_one_from_scaffold(self, scaffold: str) -> Optional[str]:
+        return self._generate_batch_from_scaffolds([scaffold])[0]
+
+    def _generate_batch_from_scaffolds(self, scaffolds: List[str]) -> List[Optional[str]]:
+        if not scaffolds:
+            return []
+
         encoder_inputs = self.tokenizer(
-            scaffold,
+            scaffolds,
             max_length=self.max_input_length,
             truncation=True,
-            padding=False,
+            padding=True,
             return_tensors="pt",
         )
         input_ids = encoder_inputs["input_ids"].to(self.device)
         attention_mask = encoder_inputs["attention_mask"].to(self.device)
 
+        batch_size = len(scaffolds)
         decoder_input_ids = torch.tensor(
-            [[self.decoder_start_token_id]], dtype=torch.long, device=self.device
+            [[self.decoder_start_token_id]] * batch_size,
+            dtype=torch.long,
+            device=self.device,
         )
 
         generated = self.model.generate(
@@ -151,24 +170,56 @@ class ScaffoldConditionedGuacaMolGenerator:
             num_beams=self.num_beams,
             repetition_penalty=self.repetition_penalty,
             max_new_tokens=self.max_new_tokens,
+            num_return_sequences=self.num_return_sequences,
             pad_token_id=self.tokenizer.pad_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
         )
 
-        decoded_raw = self.tokenizer.decode(generated[0], skip_special_tokens=False)
-        decorators = clean_decoded_text(decoded_raw)
+        decoded_texts = self.tokenizer.batch_decode(generated, skip_special_tokens=False)
+        out: List[Optional[str]] = []
+        n = self.num_return_sequences
+        for i, scaffold in enumerate(scaffolds):
+            for j in range(n):
+                decoded_raw = decoded_texts[i * n + j]
+                decorators = clean_decoded_text(decoded_raw)
+                try:
+                    assembled = attach_decorators_to_scaffold(scaffold, decorators)
+                except Exception:
+                    self.stats.assembly_failures += 1
+                    out.append(None)
+                    continue
 
-        try:
-            assembled = attach_decorators_to_scaffold(scaffold, decorators)
-        except Exception:
-            self.stats.assembly_failures += 1
-            return None
+                mol = Chem.MolFromSmiles(assembled)
+                if mol is None:
+                    self.stats.invalid_smiles += 1
+                    out.append(None)
+                    continue
+                out.append(Chem.MolToSmiles(mol, canonical=True))
+        return out
 
-        mol = Chem.MolFromSmiles(assembled)
-        if mol is None:
-            self.stats.invalid_smiles += 1
-            return None
-        return Chem.MolToSmiles(mol, canonical=True)
+    def _generate_attempts_for_scaffold(
+        self,
+        scaffold: str,
+        n_attempts: int,
+    ) -> List[Optional[str]]:
+        """Generate exactly n_attempts candidates for one fixed scaffold."""
+        n_attempts = max(0, int(n_attempts))
+        if n_attempts == 0:
+            return []
+        results: List[Optional[str]] = []
+        produced = 0
+        while produced < n_attempts:
+            remaining = n_attempts - produced
+            scaffold_batch_size = min(
+                self.eval_batch_size,
+                max(1, int(math.ceil(remaining / float(self.num_return_sequences)))),
+            )
+            batch_scaffolds = [scaffold] * scaffold_batch_size
+            batch = self._generate_batch_from_scaffolds(batch_scaffolds)
+            take = min(remaining, len(batch))
+            results.extend(batch[:take])
+            produced += take
+        return results
 
     def generate(self, number_samples: int) -> List[str]:
         target = int(number_samples)
@@ -188,21 +239,48 @@ class ScaffoldConditionedGuacaMolGenerator:
                 leave=False,
             ) as pbar:
                 while len(generated) < target and self.stats.attempts < max_attempts:
-                    scaffold = self._sample_scaffold()
-                    self.stats.attempts += 1
-                    smiles = self._generate_one_from_scaffold(scaffold)
-                    pbar.update(1)
+                    remaining_attempts = max_attempts - self.stats.attempts
+                    if remaining_attempts <= 0:
+                        break
 
-                    if smiles is not None:
-                        generated.append(smiles)
-                        self.stats.successes += 1
+                    # Plan only as many attempts as still needed to reach target;
+                    # this keeps runtime low near convergence.
+                    attempts_needed = max(1, target - len(generated))
+                    planned_attempts = min(remaining_attempts, attempts_needed)
+                    scaffold_batch_size = min(
+                        self.eval_batch_size,
+                        max(
+                            1,
+                            int(
+                                math.ceil(
+                                    planned_attempts / float(self.num_return_sequences)
+                                )
+                            ),
+                        ),
+                    )
+                    scaffolds = [self._sample_scaffold() for _ in range(scaffold_batch_size)]
+                    smiles_batch = self._generate_batch_from_scaffolds(scaffolds)
+                    if len(smiles_batch) > planned_attempts:
+                        smiles_batch = smiles_batch[:planned_attempts]
 
-                    if self.stats.attempts == 1 or self.stats.attempts % 25 == 0 or smiles is not None:
-                        success_rate = self.stats.successes / max(1, self.stats.attempts)
-                        pbar.set_postfix(
-                            valid=f"{len(generated)}/{target}",
-                            succ_rate=f"{success_rate:.2%}",
-                        )
+                    for smiles in smiles_batch:
+                        self.stats.attempts += 1
+                        pbar.update(1)
+                        if smiles is not None:
+                            self.stats.successes += 1
+                            if len(generated) < target:
+                                generated.append(smiles)
+
+                        if (
+                            self.stats.attempts == 1
+                            or self.stats.attempts % 25 == 0
+                            or smiles is not None
+                        ):
+                            success_rate = self.stats.successes / max(1, self.stats.attempts)
+                            pbar.set_postfix(
+                                valid=f"{len(generated)}/{target}",
+                                succ_rate=f"{success_rate:.2%}",
+                            )
 
         if len(generated) < target:
             if not generated:
@@ -421,12 +499,12 @@ def _evaluate_scaffold_distributions(
             )
         for scaffold_idx, scaffold in scaffold_iter:
             target_core = _conditioned_scaffold_core_smiles(scaffold)
+            attempts = generator._generate_attempts_for_scaffold(scaffold, n_samples_per_scaffold)
             valid_smiles: List[str] = []
             novel_count = 0
             similar_count = 0
 
-            for _ in range(n_samples_per_scaffold):
-                generated = generator._generate_one_from_scaffold(scaffold)
+            for generated in attempts:
                 if generated is None:
                     continue
 
@@ -440,9 +518,9 @@ def _evaluate_scaffold_distributions(
 
             valid_count = len(valid_smiles)
             unique_count = len(set(valid_smiles))
-            attempts = n_samples_per_scaffold
+            attempts_count = len(attempts)
 
-            validity = valid_count / float(attempts)
+            validity = valid_count / float(attempts_count)
             uniqueness = (unique_count / float(valid_count)) if valid_count else 0.0
             novelty = (novel_count / float(valid_count)) if valid_count else 0.0
             similarity = (similar_count / float(valid_count)) if valid_count else 0.0
@@ -452,7 +530,7 @@ def _evaluate_scaffold_distributions(
                     "scaffold_index": scaffold_idx,
                     "scaffold": scaffold,
                     "scaffold_core": target_core or "",
-                    "n_attempts": attempts,
+                    "n_attempts": attempts_count,
                     "n_valid": valid_count,
                     "n_unique": unique_count,
                     "n_novel": novel_count,
@@ -511,6 +589,21 @@ def main():
     parser.add_argument("--attempts_multiplier", type=int, default=8)
     parser.add_argument("--max_input_length", type=int, default=128)
     parser.add_argument("--max_new_tokens", type=int, default=128)
+    parser.add_argument(
+        "--eval_batch_size",
+        type=int,
+        default=1,
+        help="Number of scaffolds decoded per generate() call (higher = faster, uses more VRAM).",
+    )
+    parser.add_argument(
+        "--num_return_sequences",
+        type=int,
+        default=1,
+        help=(
+            "Number of sampled sequences per scaffold prompt in each decode call "
+            "(higher = faster, uses more VRAM)."
+        ),
+    )
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--top_p", type=float, default=0.95)
     parser.add_argument("--num_beams", type=int, default=1)
@@ -603,6 +696,8 @@ def main():
         max_input_length=args.max_input_length,
         seed=args.seed,
         attempts_multiplier=args.attempts_multiplier,
+        eval_batch_size=args.eval_batch_size,
+        num_return_sequences=args.num_return_sequences,
         show_progress=not args.no_progress_bar,
     )
 
