@@ -1,4 +1,5 @@
 import argparse
+import csv
 import math
 import os
 import random
@@ -7,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 import torch
 from rdkit import Chem
+from tqdm.auto import tqdm
 
 from tfg_molecular_generation.ape_hf_wrapper import APEHuggingFaceTokenizer
 from tfg_molecular_generation.decorator_utils import (
@@ -117,6 +119,8 @@ class ScaffoldBanditGoalDirectedGenerator:
         repetition_penalty: float = 1.05,
         num_beams: int = 1,
         verbose_every: int = 5,
+        show_progress: bool = True,
+        collect_trace: bool = False,
     ):
         if not scaffold_pool:
             raise ValueError("Scaffold pool is empty.")
@@ -147,6 +151,10 @@ class ScaffoldBanditGoalDirectedGenerator:
         self.repetition_penalty = float(repetition_penalty)
         self.num_beams = int(num_beams)
         self.verbose_every = max(1, int(verbose_every))
+        self.show_progress = bool(show_progress)
+        self.collect_trace = bool(collect_trace)
+        self.trace_records: List[Dict[str, object]] = []
+        self._benchmark_run_index = 0
 
         self.tokenizer = APEHuggingFaceTokenizer(ape_tokenizer_path=tokenizer_dir)
         self.model = load_model_for_inference(model_dir)
@@ -167,6 +175,14 @@ class ScaffoldBanditGoalDirectedGenerator:
 
         print(f"[GoalDirected] Device: {self.device}")
         print(f"[GoalDirected] Scaffold pool size: {len(self.scaffold_pool)}")
+
+    @staticmethod
+    def _infer_scoring_function_name(scoring_function, run_index: int) -> str:
+        for attr in ("name", "benchmark_name", "objective_name", "task_name"):
+            value = getattr(scoring_function, attr, None)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        return f"benchmark_{run_index:02d}_{scoring_function.__class__.__name__}"
 
     def _derive_scaffold(self, smiles: str) -> Optional[str]:
         pair = smiles_to_scaffold_and_decorators(smiles)
@@ -290,6 +306,10 @@ class ScaffoldBanditGoalDirectedGenerator:
         if target <= 0:
             return []
 
+        self._benchmark_run_index += 1
+        benchmark_idx = self._benchmark_run_index
+        benchmark_name = self._infer_scoring_function_name(scoring_function, benchmark_idx)
+
         eval_budget = max(self.min_eval_budget, target * self.eval_budget_multiplier)
         max_rounds = max(20, eval_budget // max(1, self.scaffolds_per_round * self.candidates_per_scaffold))
         archive_limit = target * self.top_archive_multiplier
@@ -324,74 +344,113 @@ class ScaffoldBanditGoalDirectedGenerator:
         best_score = max(archive_scores.values()) if archive_scores else -1e9
         stagnant_rounds = 0
 
-        for round_idx in range(max_rounds):
-            if eval_calls >= eval_budget or stagnant_rounds >= self.rounds_patience:
-                break
+        with tqdm(
+            total=max_rounds,
+            desc="[GoalDirected] Search rounds",
+            unit="round",
+            dynamic_ncols=True,
+            disable=not self.show_progress,
+            leave=False,
+        ) as round_bar:
+            for round_idx in range(max_rounds):
+                if eval_calls >= eval_budget or stagnant_rounds >= self.rounds_patience:
+                    break
 
-            temperature, top_p = self._schedule(round_idx=round_idx, total_rounds=max_rounds)
-            selected_scaffolds = self._select_scaffolds(
-                stats=scaffold_stats,
-                n_select=self.scaffolds_per_round,
-                starting_scaffolds=starting_scaffolds,
-            )
-            proposals, proposal_scaffolds = self._propose_candidates(
-                selected_scaffolds=selected_scaffolds,
-                stats=scaffold_stats,
-                temperature=temperature,
-                top_p=top_p,
-                seen_smiles=seen_smiles,
-            )
-            if not proposals:
-                stagnant_rounds += 1
-                continue
-
-            remaining_budget = max(0, eval_budget - eval_calls)
-            if remaining_budget == 0:
-                break
-            if len(proposals) > remaining_budget:
-                proposals = proposals[:remaining_budget]
-                proposal_scaffolds = proposal_scaffolds[:remaining_budget]
-
-            scores = scoring_function.score_list(proposals)
-            eval_calls += len(proposals)
-            improved = False
-
-            for sm, score, scaffold in zip(proposals, scores, proposal_scaffolds):
-                s = float(score)
-                archive_scores[sm] = s
-
-                st = scaffold_stats[scaffold]
-                st.pulls += 1
-                st.score_sum += s
-                if s > st.best_score:
-                    st.best_score = s
-
-                if s > best_score + self.min_improvement:
-                    best_score = s
-                    improved = True
-
-            if len(archive_scores) > archive_limit:
-                top_items = sorted(archive_scores.items(), key=lambda kv: kv[1], reverse=True)[:archive_limit]
-                archive_scores = dict(top_items)
-                seen_smiles = set(archive_scores.keys())
-
-            if improved:
-                stagnant_rounds = 0
-            else:
-                stagnant_rounds += 1
-
-            if (round_idx + 1) % self.verbose_every == 0:
-                current_top = sorted(archive_scores.values(), reverse=True)[:5]
-                top_mean = sum(current_top) / len(current_top) if current_top else float("nan")
-                print(
-                    "[GoalDirected] "
-                    f"round={round_idx + 1}/{max_rounds} "
-                    f"eval_calls={eval_calls}/{eval_budget} "
-                    f"archive={len(archive_scores)} "
-                    f"best={best_score:.4f} top5_mean={top_mean:.4f} "
-                    f"temp={temperature:.3f} top_p={top_p:.3f} "
-                    f"stagnant_rounds={stagnant_rounds}"
+                temperature, top_p = self._schedule(round_idx=round_idx, total_rounds=max_rounds)
+                selected_scaffolds = self._select_scaffolds(
+                    stats=scaffold_stats,
+                    n_select=self.scaffolds_per_round,
+                    starting_scaffolds=starting_scaffolds,
                 )
+                proposals, proposal_scaffolds = self._propose_candidates(
+                    selected_scaffolds=selected_scaffolds,
+                    stats=scaffold_stats,
+                    temperature=temperature,
+                    top_p=top_p,
+                    seen_smiles=seen_smiles,
+                )
+                if not proposals:
+                    stagnant_rounds += 1
+                    round_bar.update(1)
+                    round_bar.set_postfix(
+                        eval=f"{eval_calls}/{eval_budget}",
+                        archive=len(archive_scores),
+                        best=f"{best_score:.4f}",
+                        stagnant=stagnant_rounds,
+                    )
+                    continue
+
+                remaining_budget = max(0, eval_budget - eval_calls)
+                if remaining_budget == 0:
+                    break
+                if len(proposals) > remaining_budget:
+                    proposals = proposals[:remaining_budget]
+                    proposal_scaffolds = proposal_scaffolds[:remaining_budget]
+
+                scores = scoring_function.score_list(proposals)
+                eval_calls += len(proposals)
+                improved = False
+
+                for sm, score, scaffold in zip(proposals, scores, proposal_scaffolds):
+                    s = float(score)
+                    archive_scores[sm] = s
+
+                    st = scaffold_stats[scaffold]
+                    st.pulls += 1
+                    st.score_sum += s
+                    if s > st.best_score:
+                        st.best_score = s
+
+                    if s > best_score + self.min_improvement:
+                        best_score = s
+                        improved = True
+                    if self.collect_trace:
+                        self.trace_records.append(
+                            {
+                                "benchmark_index": benchmark_idx,
+                                "benchmark_name": benchmark_name,
+                                "round_index": round_idx + 1,
+                                "eval_calls": eval_calls,
+                                "scaffold": scaffold,
+                                "molecule": sm,
+                                "score": s,
+                                "temperature": float(temperature),
+                                "top_p": float(top_p),
+                            }
+                        )
+
+                if len(archive_scores) > archive_limit:
+                    top_items = sorted(archive_scores.items(), key=lambda kv: kv[1], reverse=True)[:archive_limit]
+                    archive_scores = dict(top_items)
+                    seen_smiles = set(archive_scores.keys())
+
+                if improved:
+                    stagnant_rounds = 0
+                else:
+                    stagnant_rounds += 1
+
+                round_bar.update(1)
+                round_bar.set_postfix(
+                    eval=f"{eval_calls}/{eval_budget}",
+                    archive=len(archive_scores),
+                    best=f"{best_score:.4f}",
+                    temp=f"{temperature:.2f}",
+                    top_p=f"{top_p:.2f}",
+                    stagnant=stagnant_rounds,
+                )
+
+                if (round_idx + 1) % self.verbose_every == 0:
+                    current_top = sorted(archive_scores.values(), reverse=True)[:5]
+                    top_mean = sum(current_top) / len(current_top) if current_top else float("nan")
+                    print(
+                        "[GoalDirected] "
+                        f"round={round_idx + 1}/{max_rounds} "
+                        f"eval_calls={eval_calls}/{eval_budget} "
+                        f"archive={len(archive_scores)} "
+                        f"best={best_score:.4f} top5_mean={top_mean:.4f} "
+                        f"temp={temperature:.3f} top_p={top_p:.3f} "
+                        f"stagnant_rounds={stagnant_rounds}"
+                    )
 
         ranked = sorted(archive_scores.items(), key=lambda kv: kv[1], reverse=True)
         molecules = [sm for sm, _ in ranked[:target]]
@@ -403,6 +462,89 @@ class ScaffoldBanditGoalDirectedGenerator:
             while len(molecules) < target:
                 molecules.append(self.rng.choice(pad_source))
         return molecules
+
+
+def save_goal_directed_trace_csv(records: List[Dict[str, object]], output_csv: str) -> None:
+    if not records:
+        print("[GoalDirected] No trace records to save.")
+        return
+
+    os.makedirs(os.path.dirname(output_csv) or ".", exist_ok=True)
+    fieldnames = [
+        "benchmark_index",
+        "benchmark_name",
+        "round_index",
+        "eval_calls",
+        "scaffold",
+        "molecule",
+        "score",
+        "temperature",
+        "top_p",
+    ]
+    with open(output_csv, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in records:
+            writer.writerow(row)
+    print(f"[GoalDirected] Trace CSV saved to: {output_csv} (rows={len(records)})")
+
+
+def build_goal_directed_boxplot_by_test(
+    records: List[Dict[str, object]],
+    output_png: str,
+    min_points_per_test: int = 5,
+) -> None:
+    if not records:
+        print("[GoalDirected] No trace records available for boxplot.")
+        return
+
+    # Aggregate by test+scaffold and then compute the mean score per scaffold.
+    grouped: Dict[Tuple[int, str, str], List[float]] = {}
+    for row in records:
+        key = (int(row["benchmark_index"]), str(row["benchmark_name"]), str(row["scaffold"]))
+        grouped.setdefault(key, []).append(float(row["score"]))
+
+    by_test: Dict[Tuple[int, str], List[float]] = {}
+    for (idx, name, _scaffold), vals in grouped.items():
+        by_test.setdefault((idx, name), []).append(sum(vals) / float(len(vals)))
+
+    ordered = sorted(by_test.items(), key=lambda kv: kv[0][0])
+    labels = []
+    data = []
+    for (idx, name), vals in ordered:
+        if len(vals) < min_points_per_test:
+            continue
+        labels.append(f"{idx:02d} {name}")
+        data.append(vals)
+
+    if not data:
+        print(
+            "[GoalDirected] Not enough per-test points to draw boxplot. "
+            f"Try lowering --boxplot_min_points_per_test (current={min_points_per_test})."
+        )
+        return
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig_h = max(6.0, 0.45 * len(data))
+    fig, ax = plt.subplots(figsize=(13, fig_h))
+    bp = ax.boxplot(data, vert=False, patch_artist=True, labels=labels, showfliers=False)
+    for patch in bp["boxes"]:
+        patch.set_facecolor("#7fb3d5")
+        patch.set_alpha(0.75)
+    ax.set_xlabel("Mean score per scaffold")
+    ax.set_ylabel("GuacaMol Goal-Directed Test")
+    ax.set_title("Score Distribution by Test (Scaffold-Level Means)")
+    ax.grid(axis="x", alpha=0.25)
+    plt.tight_layout()
+
+    os.makedirs(os.path.dirname(output_png) or ".", exist_ok=True)
+    fig.savefig(output_png, dpi=180)
+    plt.close(fig)
+    print(f"[GoalDirected] Boxplot saved to: {output_png}")
 
 
 def main():
@@ -452,6 +594,33 @@ def main():
     parser.add_argument("--repetition_penalty", type=float, default=1.05)
     parser.add_argument("--num_beams", type=int, default=1)
     parser.add_argument("--verbose_every", type=int, default=5)
+    parser.add_argument(
+        "--no_progress_bar",
+        action="store_true",
+        help="Disable tqdm progress bars (useful for very clean nohup logs).",
+    )
+    parser.add_argument(
+        "--trace_csv_output",
+        default=None,
+        help=(
+            "Optional path to save per-evaluated-molecule trace (benchmark, scaffold, score, etc.). "
+            "If set, this enables detailed logging for post-hoc analysis and boxplots."
+        ),
+    )
+    parser.add_argument(
+        "--boxplot_output",
+        default=None,
+        help=(
+            "Optional PNG output for a boxplot with one row per test "
+            "(distribution of scaffold-level mean scores). Requires --trace_csv_output."
+        ),
+    )
+    parser.add_argument(
+        "--boxplot_min_points_per_test",
+        type=int,
+        default=5,
+        help="Minimum number of scaffold points needed per test to include it in the boxplot.",
+    )
     args = parser.parse_args()
 
     try:
@@ -507,6 +676,8 @@ def main():
         repetition_penalty=args.repetition_penalty,
         num_beams=args.num_beams,
         verbose_every=args.verbose_every,
+        show_progress=not args.no_progress_bar,
+        collect_trace=bool(args.trace_csv_output),
     )
 
     os.makedirs(os.path.dirname(args.json_output_file) or ".", exist_ok=True)
@@ -519,6 +690,14 @@ def main():
         json_output_file=args.json_output_file,
         benchmark_version=args.benchmark_version,
     )
+    if args.trace_csv_output:
+        save_goal_directed_trace_csv(generator.trace_records, args.trace_csv_output)
+        if args.boxplot_output:
+            build_goal_directed_boxplot_by_test(
+                records=generator.trace_records,
+                output_png=args.boxplot_output,
+                min_points_per_test=max(1, int(args.boxplot_min_points_per_test)),
+            )
     print(f"[GoalDirected] Done. Results saved to: {args.json_output_file}")
 
 

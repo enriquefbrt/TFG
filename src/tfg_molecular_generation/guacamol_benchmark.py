@@ -1,13 +1,17 @@
 import argparse
+import csv
 import json
 import os
 import random
+import statistics
 import time
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import torch
 from rdkit import Chem
+from rdkit.Chem.Scaffolds import MurckoScaffold
+from tqdm.auto import tqdm
 
 from tfg_molecular_generation.ape_hf_wrapper import APEHuggingFaceTokenizer
 from tfg_molecular_generation.decorator_utils import (
@@ -81,6 +85,7 @@ class ScaffoldConditionedGuacaMolGenerator:
         seed: int,
         attempts_multiplier: int,
         max_input_length: int = 128,
+        show_progress: bool = True,
     ):
         if not scaffold_pool:
             raise ValueError("Scaffold pool is empty. Cannot run benchmark.")
@@ -93,6 +98,7 @@ class ScaffoldConditionedGuacaMolGenerator:
         self.max_new_tokens = max_new_tokens
         self.max_input_length = max_input_length
         self.attempts_multiplier = max(1, int(attempts_multiplier))
+        self.show_progress = bool(show_progress)
         self.rng = random.Random(seed)
         self.stats = GenerationStats()
 
@@ -173,14 +179,30 @@ class ScaffoldConditionedGuacaMolGenerator:
         max_attempts = target * self.attempts_multiplier
 
         with torch.no_grad():
-            while len(generated) < target and self.stats.attempts < max_attempts:
-                scaffold = self._sample_scaffold()
-                self.stats.attempts += 1
-                smiles = self._generate_one_from_scaffold(scaffold)
-                if smiles is None:
-                    continue
-                generated.append(smiles)
-                self.stats.successes += 1
+            with tqdm(
+                total=max_attempts,
+                desc="[GuacaMol] Sampling attempts",
+                unit="try",
+                dynamic_ncols=True,
+                disable=not self.show_progress,
+                leave=False,
+            ) as pbar:
+                while len(generated) < target and self.stats.attempts < max_attempts:
+                    scaffold = self._sample_scaffold()
+                    self.stats.attempts += 1
+                    smiles = self._generate_one_from_scaffold(scaffold)
+                    pbar.update(1)
+
+                    if smiles is not None:
+                        generated.append(smiles)
+                        self.stats.successes += 1
+
+                    if self.stats.attempts == 1 or self.stats.attempts % 25 == 0 or smiles is not None:
+                        success_rate = self.stats.successes / max(1, self.stats.attempts)
+                        pbar.set_postfix(
+                            valid=f"{len(generated)}/{target}",
+                            succ_rate=f"{success_rate:.2%}",
+                        )
 
         if len(generated) < target:
             if not generated:
@@ -218,6 +240,230 @@ def _benchmark_results_to_json(
     os.makedirs(os.path.dirname(output_json) or ".", exist_ok=True)
     with open(output_json, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
+
+
+def _canonicalize_smiles(smiles: str) -> Optional[str]:
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    return Chem.MolToSmiles(mol, canonical=True)
+
+
+def _conditioned_scaffold_core_smiles(scaffold_smiles: str) -> Optional[str]:
+    mol = Chem.MolFromSmiles(scaffold_smiles)
+    if mol is None:
+        return None
+    rw = Chem.RWMol(mol)
+    dummy_idxs = [atom.GetIdx() for atom in rw.GetAtoms() if atom.GetAtomicNum() == 0]
+    for idx in sorted(dummy_idxs, reverse=True):
+        rw.RemoveAtom(idx)
+    core = rw.GetMol()
+    if core.GetNumAtoms() == 0:
+        return None
+    try:
+        Chem.SanitizeMol(core)
+    except Exception:
+        return None
+    return Chem.MolToSmiles(core, canonical=True)
+
+
+def _murcko_scaffold_smiles(smiles: str) -> Optional[str]:
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    scaffold_mol = MurckoScaffold.GetScaffoldForMol(mol)
+    if scaffold_mol is None or scaffold_mol.GetNumAtoms() == 0:
+        return None
+    return Chem.MolToSmiles(scaffold_mol, canonical=True)
+
+
+def _load_canonical_smiles_set(path: str) -> set:
+    canonical = set()
+    for line in _load_smiles_lines(path):
+        smi = _canonicalize_smiles(line)
+        if smi:
+            canonical.add(smi)
+    return canonical
+
+
+def _save_scaffold_metrics_csv(rows: List[Dict[str, object]], output_csv: str) -> None:
+    if not rows:
+        print("[GuacaMol][ScaffoldEval] No rows to save in CSV.")
+        return
+    os.makedirs(os.path.dirname(output_csv) or ".", exist_ok=True)
+    fieldnames = [
+        "scaffold_index",
+        "scaffold",
+        "scaffold_core",
+        "n_attempts",
+        "n_valid",
+        "n_unique",
+        "n_novel",
+        "n_similar",
+        "validity",
+        "uniqueness",
+        "novelty",
+        "similarity",
+    ]
+    with open(output_csv, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+    print(f"[GuacaMol][ScaffoldEval] Saved CSV: {output_csv} (rows={len(rows)})")
+
+
+def _build_scaffold_boxplot(rows: List[Dict[str, object]], output_png: str) -> None:
+    if not rows:
+        print("[GuacaMol][ScaffoldEval] No rows available for boxplot.")
+        return
+
+    metrics = {
+        "Validity": [float(r["validity"]) for r in rows],
+        "Uniqueness": [float(r["uniqueness"]) for r in rows],
+        "Novelty": [float(r["novelty"]) for r in rows],
+        "Similarity": [float(r["similarity"]) for r in rows],
+    }
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    labels = list(metrics.keys())
+    data = [metrics[k] for k in labels]
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bp = ax.boxplot(data, labels=labels, patch_artist=True, showfliers=True)
+    palette = ["#4c78a8", "#f58518", "#54a24b", "#b279a2"]
+    for patch, color in zip(bp["boxes"], palette):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.75)
+    ax.set_ylim(0.0, 1.0)
+    ax.set_ylabel("Score")
+    ax.set_title("Per-Scaffold Metric Distributions (Paper-Style)")
+    ax.grid(axis="y", alpha=0.25)
+    plt.tight_layout()
+
+    os.makedirs(os.path.dirname(output_png) or ".", exist_ok=True)
+    fig.savefig(output_png, dpi=180)
+    plt.close(fig)
+    print(f"[GuacaMol][ScaffoldEval] Saved boxplot: {output_png}")
+
+
+def _save_scaffold_eval_json(rows: List[Dict[str, object]], output_json: str) -> None:
+    if not rows:
+        print("[GuacaMol][ScaffoldEval] No rows available for JSON summary.")
+        return
+
+    def summarize(key: str) -> Dict[str, float]:
+        vals = [float(r[key]) for r in rows]
+        return {
+            "mean": float(statistics.fmean(vals)),
+            "std": float(statistics.pstdev(vals)) if len(vals) > 1 else 0.0,
+            "min": float(min(vals)),
+            "max": float(max(vals)),
+            "median": float(statistics.median(vals)),
+        }
+
+    payload = {
+        "n_scaffolds": len(rows),
+        "summary": {
+            "validity": summarize("validity"),
+            "uniqueness": summarize("uniqueness"),
+            "novelty": summarize("novelty"),
+            "similarity": summarize("similarity"),
+        },
+        "rows": rows,
+    }
+    os.makedirs(os.path.dirname(output_json) or ".", exist_ok=True)
+    with open(output_json, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
+    print(f"[GuacaMol][ScaffoldEval] Saved JSON: {output_json}")
+
+
+def _evaluate_scaffold_distributions(
+    generator: "ScaffoldConditionedGuacaMolGenerator",
+    scaffold_pool: List[str],
+    canonical_training_smiles: set,
+    n_scaffolds: int,
+    n_samples_per_scaffold: int,
+    seed: int,
+    show_progress: bool,
+) -> List[Dict[str, object]]:
+    n_scaffolds = max(1, int(n_scaffolds))
+    n_samples_per_scaffold = max(1, int(n_samples_per_scaffold))
+
+    rng = random.Random(seed)
+    unique_pool = list(dict.fromkeys(scaffold_pool))
+    if len(unique_pool) <= n_scaffolds:
+        selected_scaffolds = unique_pool
+    else:
+        selected_scaffolds = rng.sample(unique_pool, n_scaffolds)
+
+    rows: List[Dict[str, object]] = []
+    print(
+        "[GuacaMol][ScaffoldEval] Running paper-style evaluation with "
+        f"{len(selected_scaffolds)} scaffolds x {n_samples_per_scaffold} molecules/scaffold"
+    )
+
+    with torch.no_grad():
+        scaffold_iter = enumerate(selected_scaffolds, start=1)
+        if show_progress:
+            scaffold_iter = enumerate(
+                tqdm(
+                    selected_scaffolds,
+                    total=len(selected_scaffolds),
+                    desc="[GuacaMol][ScaffoldEval] Scaffolds",
+                    unit="scf",
+                    dynamic_ncols=True,
+                ),
+                start=1,
+            )
+        for scaffold_idx, scaffold in scaffold_iter:
+            target_core = _conditioned_scaffold_core_smiles(scaffold)
+            valid_smiles: List[str] = []
+            novel_count = 0
+            similar_count = 0
+
+            for _ in range(n_samples_per_scaffold):
+                generated = generator._generate_one_from_scaffold(scaffold)
+                if generated is None:
+                    continue
+
+                valid_smiles.append(generated)
+                if generated not in canonical_training_smiles:
+                    novel_count += 1
+
+                gen_core = _murcko_scaffold_smiles(generated)
+                if target_core and gen_core and gen_core == target_core:
+                    similar_count += 1
+
+            valid_count = len(valid_smiles)
+            unique_count = len(set(valid_smiles))
+            attempts = n_samples_per_scaffold
+
+            validity = valid_count / float(attempts)
+            uniqueness = (unique_count / float(valid_count)) if valid_count else 0.0
+            novelty = (novel_count / float(valid_count)) if valid_count else 0.0
+            similarity = (similar_count / float(valid_count)) if valid_count else 0.0
+
+            rows.append(
+                {
+                    "scaffold_index": scaffold_idx,
+                    "scaffold": scaffold,
+                    "scaffold_core": target_core or "",
+                    "n_attempts": attempts,
+                    "n_valid": valid_count,
+                    "n_unique": unique_count,
+                    "n_novel": novel_count,
+                    "n_similar": similar_count,
+                    "validity": validity,
+                    "uniqueness": uniqueness,
+                    "novelty": novelty,
+                    "similarity": similarity,
+                }
+            )
+    return rows
 
 
 def main():
@@ -269,6 +515,43 @@ def main():
     parser.add_argument("--top_p", type=float, default=0.95)
     parser.add_argument("--num_beams", type=int, default=1)
     parser.add_argument("--repetition_penalty", type=float, default=1.0)
+    parser.add_argument(
+        "--no_progress_bar",
+        action="store_true",
+        help="Disable tqdm progress bars (useful for very clean nohup logs).",
+    )
+    parser.add_argument(
+        "--paper_style_eval",
+        action="store_true",
+        help="Run additional per-scaffold evaluation (paper-style Fig.3 protocol).",
+    )
+    parser.add_argument(
+        "--paper_num_scaffolds",
+        type=int,
+        default=100,
+        help="Number of scaffolds sampled for paper-style per-scaffold evaluation.",
+    )
+    parser.add_argument(
+        "--paper_samples_per_scaffold",
+        type=int,
+        default=100,
+        help="Number of generated molecules per scaffold in paper-style evaluation.",
+    )
+    parser.add_argument(
+        "--paper_metrics_csv_output",
+        default=None,
+        help="Optional CSV output for per-scaffold metrics (Validity/Uniqueness/Novelty/Similarity).",
+    )
+    parser.add_argument(
+        "--paper_boxplot_output",
+        default=None,
+        help="Optional PNG output for paper-style per-scaffold boxplot.",
+    )
+    parser.add_argument(
+        "--paper_json_output",
+        default=None,
+        help="Optional JSON output with per-scaffold rows plus aggregated summary statistics.",
+    )
     args = parser.parse_args()
 
     try:
@@ -303,6 +586,10 @@ def main():
         raise ValueError(
             "No scaffolds available. Check scaffold_pool_file or scaffold_source_smiles_file."
         )
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
 
     generator = ScaffoldConditionedGuacaMolGenerator(
         model_dir=args.model_dir,
@@ -316,6 +603,7 @@ def main():
         max_input_length=args.max_input_length,
         seed=args.seed,
         attempts_multiplier=args.attempts_multiplier,
+        show_progress=not args.no_progress_bar,
     )
 
     print("[GuacaMol] Building benchmark suite...")
@@ -327,7 +615,19 @@ def main():
 
     results = []
     print(f"[GuacaMol] Running {len(benchmarks)} benchmarks...")
-    for idx, benchmark in enumerate(benchmarks, start=1):
+    benchmark_iter = enumerate(benchmarks, start=1)
+    if not args.no_progress_bar:
+        benchmark_iter = enumerate(
+            tqdm(
+                benchmarks,
+                total=len(benchmarks),
+                desc="[GuacaMol] Benchmarks",
+                unit="task",
+                dynamic_ncols=True,
+            ),
+            start=1,
+        )
+    for idx, benchmark in benchmark_iter:
         print(f"[GuacaMol] {idx}/{len(benchmarks)} - {benchmark.name}")
         result = benchmark.assess_model(generator)
         print(
@@ -352,6 +652,39 @@ def main():
         f"assembly_failures={generator.stats.assembly_failures}, "
         f"invalid_smiles={generator.stats.invalid_smiles}"
     )
+
+    run_paper_eval = (
+        bool(args.paper_style_eval)
+        or bool(args.paper_metrics_csv_output)
+        or bool(args.paper_boxplot_output)
+        or bool(args.paper_json_output)
+    )
+    if run_paper_eval:
+        canonical_training_smiles = _load_canonical_smiles_set(args.chembl_training_file)
+        rows = _evaluate_scaffold_distributions(
+            generator=generator,
+            scaffold_pool=scaffold_pool,
+            canonical_training_smiles=canonical_training_smiles,
+            n_scaffolds=args.paper_num_scaffolds,
+            n_samples_per_scaffold=args.paper_samples_per_scaffold,
+            seed=args.seed,
+            show_progress=not args.no_progress_bar,
+        )
+        if args.paper_metrics_csv_output:
+            _save_scaffold_metrics_csv(rows, args.paper_metrics_csv_output)
+        if args.paper_boxplot_output:
+            _build_scaffold_boxplot(rows, args.paper_boxplot_output)
+        if args.paper_json_output:
+            _save_scaffold_eval_json(rows, args.paper_json_output)
+
+        if rows:
+            print(
+                "[GuacaMol][ScaffoldEval] Means: "
+                f"Validity={statistics.fmean([r['validity'] for r in rows]):.4f}, "
+                f"Uniqueness={statistics.fmean([r['uniqueness'] for r in rows]):.4f}, "
+                f"Novelty={statistics.fmean([r['novelty'] for r in rows]):.4f}, "
+                f"Similarity={statistics.fmean([r['similarity'] for r in rows]):.4f}"
+            )
 
 
 if __name__ == "__main__":
