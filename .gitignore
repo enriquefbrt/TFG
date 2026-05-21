@@ -2,3 +2,4 @@ models/
 src/tfg_molecular_generation/__pycache__/
 data/
 *.log
+outputs/
