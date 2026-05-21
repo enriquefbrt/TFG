@@ -106,6 +106,7 @@ class ScaffoldConditionedGuacaMolGenerator:
         self.show_progress = bool(show_progress)
         self.rng = random.Random(seed)
         self.stats = GenerationStats()
+        self._warned_unexpected_generate_shape = False
         if num_beams > 1 and self.num_return_sequences > num_beams:
             raise ValueError(
                 "num_return_sequences must be <= num_beams when num_beams > 1. "
@@ -137,7 +138,8 @@ class ScaffoldConditionedGuacaMolGenerator:
         return self.rng.choice(self.scaffold_pool)
 
     def _generate_one_from_scaffold(self, scaffold: str) -> Optional[str]:
-        return self._generate_batch_from_scaffolds([scaffold])[0]
+        batch = self._generate_batch_from_scaffolds([scaffold])
+        return batch[0] if batch else None
 
     def _generate_batch_from_scaffolds(self, scaffolds: List[str]) -> List[Optional[str]]:
         if not scaffolds:
@@ -176,25 +178,65 @@ class ScaffoldConditionedGuacaMolGenerator:
         )
 
         decoded_texts = self.tokenizer.batch_decode(generated, skip_special_tokens=False)
-        out: List[Optional[str]] = []
-        n = self.num_return_sequences
-        for i, scaffold in enumerate(scaffolds):
-            for j in range(n):
-                decoded_raw = decoded_texts[i * n + j]
-                decorators = clean_decoded_text(decoded_raw)
-                try:
-                    assembled = attach_decorators_to_scaffold(scaffold, decorators)
-                except Exception:
-                    self.stats.assembly_failures += 1
-                    out.append(None)
-                    continue
+        expected_total = batch_size * self.num_return_sequences
+        actual_total = len(decoded_texts)
 
-                mol = Chem.MolFromSmiles(assembled)
-                if mol is None:
-                    self.stats.invalid_smiles += 1
-                    out.append(None)
-                    continue
-                out.append(Chem.MolToSmiles(mol, canonical=True))
+        if actual_total == 0:
+            if not self._warned_unexpected_generate_shape:
+                print(
+                    "[GuacaMol] Warning: model.generate returned zero sequences. "
+                    f"Expected {expected_total}. Filling with None attempts."
+                )
+                self._warned_unexpected_generate_shape = True
+            return [None] * expected_total
+
+        scaffold_for_each_output: List[str] = []
+        if actual_total == expected_total:
+            for scaffold in scaffolds:
+                scaffold_for_each_output.extend([scaffold] * self.num_return_sequences)
+        elif actual_total % batch_size == 0:
+            inferred_return_sequences = actual_total // batch_size
+            if not self._warned_unexpected_generate_shape:
+                print(
+                    "[GuacaMol] Warning: Unexpected number of generated sequences "
+                    f"(expected={expected_total}, actual={actual_total}). "
+                    f"Using inferred num_return_sequences={inferred_return_sequences} for this batch."
+                )
+                self._warned_unexpected_generate_shape = True
+            for scaffold in scaffolds:
+                scaffold_for_each_output.extend([scaffold] * inferred_return_sequences)
+        else:
+            if not self._warned_unexpected_generate_shape:
+                print(
+                    "[GuacaMol] Warning: Unexpected generated shape "
+                    f"(expected={expected_total}, actual={actual_total}). "
+                    "Falling back to round-robin scaffold assignment."
+                )
+                self._warned_unexpected_generate_shape = True
+            scaffold_for_each_output = [scaffolds[i % batch_size] for i in range(actual_total)]
+
+        out: List[Optional[str]] = []
+        for scaffold, decoded_raw in zip(scaffold_for_each_output, decoded_texts):
+            decorators = clean_decoded_text(decoded_raw)
+            try:
+                assembled = attach_decorators_to_scaffold(scaffold, decorators)
+            except Exception:
+                self.stats.assembly_failures += 1
+                out.append(None)
+                continue
+
+            mol = Chem.MolFromSmiles(assembled)
+            if mol is None:
+                self.stats.invalid_smiles += 1
+                out.append(None)
+                continue
+            out.append(Chem.MolToSmiles(mol, canonical=True))
+
+        # Keep downstream accounting deterministic in terms of planned attempts.
+        if len(out) < expected_total:
+            out.extend([None] * (expected_total - len(out)))
+        elif len(out) > expected_total:
+            out = out[:expected_total]
         return out
 
     def _generate_attempts_for_scaffold(
