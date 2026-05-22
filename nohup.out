@@ -1,0 +1,867 @@
+[GuacaMol] Loaded scaffold pool from file: data/scaffold_pools/moses_unseen_benchmark_v1.txt (n=2000)
+Loading weights:   0%|          | 0/281 [00:00<?, ?it/s]Loading weights: 100%|██████████| 281/281 [00:00<00:00, 3898.36it/s]
+Loaded full model from models/t5_pretrain_scaffold_decorators_FINAL
+[GuacaMol] Device: cuda
+[GuacaMol] Scaffolds in pool: 2000
+[GuacaMol] Building benchmark suite...
+[GuacaMol] Running 5 benchmarks...
+[GuacaMol] Benchmarks:   0%|          | 0/5 [00:00<?, ?task/s][GuacaMol] 1/5 - Validity
+
+[GuacaMol] Sampling attempts:   0%|          | 0/80000 [00:00<?, ?try/s][A
+                                                                        [ATraceback (most recent call last):
+  File "/home/enriquefbrt/TFG/src/tfg_molecular_generation/guacamol_benchmark.py", line 278, in _generate_batch_from_scaffolds
+    assembled = attach_decorators_to_scaffold(scaffold, decorators)
+  File "/home/enriquefbrt/TFG/src/tfg_molecular_generation/decorator_utils.py", line 179, in attach_decorators_to_scaffold
+    frag_neighbor = _single_neighbor_idx(combined, frag_dummy_idx)
+  File "/home/enriquefbrt/TFG/src/tfg_molecular_generation/decorator_utils.py", line 29, in _single_neighbor_idx
+    raise ValueError(
+ValueError: Dummy atom at index 23 must have exactly one neighbor; got 0.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/home/enriquefbrt/TFG/src/tfg_molecular_generation/guacamol_benchmark.py", line 886, in <module>
+    main()
+  File "/home/enriquefbrt/TFG/src/tfg_molecular_generation/guacamol_benchmark.py", line 827, in main
+    result = benchmark.assess_model(generator)
+  File "/home/enriquefbrt/TFG/.venv/lib/python3.10/site-packages/guacamol/distribution_learning_benchmark.py", line 69, in assess_model
+    molecules = model.generate(number_samples=self.number_samples)
+  File "/home/enriquefbrt/TFG/src/tfg_molecular_generation/guacamol_benchmark.py", line 347, in generate
+    smiles_batch = self._generate_batch_from_scaffolds(scaffolds)
+  File "/home/enriquefbrt/TFG/src/tfg_molecular_generation/guacamol_benchmark.py", line 269, in _generate_batch_from_scaffolds
+    return self._generate_batch_from_scaffolds(scaffolds)
+  File "/home/enriquefbrt/TFG/src/tfg_molecular_generation/guacamol_benchmark.py", line 280, in _generate_batch_from_scaffolds
+    print("invalid_after_assembly:  ", assembled)
+UnboundLocalError: local variable 'assembled' referenced before assignment
+[GuacaMol] Warning: Unexpected generate output count (expected=32, actual=1). Switching to safe per-scaffold decoding mode.
+scaffold:     O=C(c1cc[nH]n1)N1CCC(c2nc3cc([*:1])ccc3o2)CC1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1] Cl </R1>
+[GuacaMol] Benchmarks:   0%|          | 0/5 [00:08<?, ?task/s]
+[GuacaMol] Loaded scaffold pool from file: data/scaffold_pools/moses_unseen_benchmark_v1.txt (n=2000)
+Loading weights:   0%|          | 0/281 [00:00<?, ?it/s]Loading weights:  35%|███▍      | 98/281 [00:00<00:00, 968.76it/s]Loading weights:  72%|███████▏  | 202/281 [00:00<00:00, 1004.87it/s]Loading weights: 100%|██████████| 281/281 [00:00<00:00, 1190.45it/s]
+Loaded full model from models/t5_pretrain_scaffold_decorators_FINAL
+[GuacaMol] Device: cuda
+[GuacaMol] Scaffolds in pool: 2000
+[GuacaMol] Building benchmark suite...
+[GuacaMol] Running 5 benchmarks...
+[GuacaMol] Benchmarks:   0%|          | 0/5 [00:00<?, ?task/s][GuacaMol] 1/5 - Validity
+
+[GuacaMol] Sampling attempts:   0%|          | 0/80000 [00:00<?, ?try/s][A
+[GuacaMol] Sampling attempts:   0%|          | 1/80000 [00:08<191:42:43,  8.63s/try][A
+[GuacaMol] Sampling attempts:   0%|          | 1/80000 [00:08<191:42:43,  8.63s/try, succ_rate=100.00%, valid=1/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 2/80000 [00:08<191:42:34,  8.63s/try, succ_rate=100.00%, valid=2/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 4/80000 [00:08<191:42:17,  8.63s/try, succ_rate=75.00%, valid=3/10000] [A
+[GuacaMol] Sampling attempts:   0%|          | 5/80000 [00:08<191:42:08,  8.63s/try, succ_rate=80.00%, valid=4/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 6/80000 [00:08<191:42:00,  8.63s/try, succ_rate=83.33%, valid=5/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 7/80000 [00:08<191:41:51,  8.63s/try, succ_rate=85.71%, valid=6/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 8/80000 [00:08<191:41:42,  8.63s/try, succ_rate=87.50%, valid=7/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 9/80000 [00:08<191:41:34,  8.63s/try, succ_rate=88.89%, valid=8/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 11/80000 [00:08<191:41:16,  8.63s/try, succ_rate=81.82%, valid=9/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 12/80000 [00:08<191:41:08,  8.63s/try, succ_rate=83.33%, valid=10/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 13/80000 [00:08<191:40:59,  8.63s/try, succ_rate=84.62%, valid=11/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 14/80000 [00:08<191:40:51,  8.63s/try, succ_rate=85.71%, valid=12/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 15/80000 [00:08<191:40:42,  8.63s/try, succ_rate=86.67%, valid=13/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 16/80000 [00:08<191:40:33,  8.63s/try, succ_rate=87.50%, valid=14/10000][A[GuacaMol] Warning: Unexpected generate output count (expected=32, actual=1). Switching to safe per-scaffold decoding mode.
+scaffold:     O=C(c1cc[nH]n1)N1CCC(c2nc3cc([*:1])ccc3o2)CC1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1>
+scaffold:     c1cc(-n2ccc([*:1])n2)nnc1NCC(C1CCCCC1)[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> N CCO C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> O <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]N CCO C </R1> <R2> [*:2]O </R2>
+scaffold:     c1c([*:2])oc([*:3])c1-c1nnc(CNC2([*:1])CCC([*:4])CC2)o1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > <unk> < R 4 > <unk> <unk> <unk> <unk> 4 <unk>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2> <R3> [*:3]C </R3> <R4> 4
+invalid_after_assembly:   Nc1ccn(-c2ccc(NCC(O)C3CCCCC3)nn2)n1
+scaffold:     O=C(CC(n1cccc1)[*:1])Nc1ccn(Cc2ccccn2)n1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     O=C1CCN(c2ncnc3cc(-c4ccc([*:1])cc4)sc23)CC1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]OC </R1>
+scaffold:     O=C(Cc1ccc([*:1])c([*:2])c1)Nc1nnc(Cc2cccs2)o1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> Cl <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1> <R2> [*:2]Cl </R2>
+scaffold:     O=C(c1scc2c1OCCO2)N1CCn2c([*:1])cnc2C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1>
+scaffold:     c1csc(C2CC(c3ccc([*:1])cc3)Nc3nnnn32)c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1>
+scaffold:     c1cc(-c2cc([*:1])c3nn[nH]c3c2)ccn1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> N CCN(C) C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]N CCN(C) C </R1>
+scaffold:     O=C1OC(c2cc([*:1])c([*:4])cc2[*:3])CC1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> OC <unk> < / R 3 > <unk> < R 4 > <unk> <unk> <unk> <unk> 4 <unk>
+decorators_norm:  <R1> [*:1]OC </R1> <R2> [*:2]C </R2> <R3> [*:3]OC </R3> <R4> 4
+invalid_after_assembly:   Nc1cc(-c2ccncc2)cc2[nH]nnc12
+scaffold:     O=C(CC1OCCc2ccccc21)Nc1ccc([*:1])c([*:2])c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C(F)(F)F <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C(F)(F)F </R2>
+scaffold:     O=C(Cn1cnc2ccccc21)N1CC(Oc2c([*:1])cccc2[*:2])C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+scaffold:     O=c1[nH]c(N2CCCC2)nc2nccc(-c3ccc([*:1])cc3)c12
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1>
+scaffold:     O=C(Cc1c[nH]c2cccc([*:1])c12)Nc1nnc(-c2ccccn2)s1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1>
+scaffold:     C1=CC([*:1])C2([*:3])OC1Oc1ccc([*:2])cc12
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> O [Si](C) (C) C(C)(C)C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> O C(C)=O <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]O [Si](C) (C) C(C)(C)C </R1> <R2> [*:2]O C(C)=O </R2> <R3> [*:3]C </R3>
+scaffold:     O=C(Nc1ccc(-n2cnnn2)c([*:1])c1)NC1C2CCC(C2)C1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> F <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C(O) =O <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]F </R1> <R2> [*:2]C(O) =O </R2>
+scaffold:     O=S(=O)(Nc1cccc2c1OCCO2)N1CC([*:1])OCC1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+scaffold:     C1Oc2nc([*:1])nc([*:2])c2O1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> N <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> O <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]N </R1> <R2> [*:2]O </R2>
+scaffold:     O=C(c1snnc1[*:1])N1CC([*:2])CC1[*:3]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> F <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C(=O)N( CC) CC <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]F </R2> <R3> [*:3]C(=O)N( CC) CC </R3>
+invalid_after_assembly:   Nc1nc(O)c2c(n1)OCO2
+scaffold:     O=C1N(c2ccsc2)CCC12CCCN([*:1])C2
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C( C( C(N CCCC C) =O) C) =O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C( C( C(N CCCC C) =O) C) =O </R1>
+invalid_after_assembly:   Nc1nc(O)c2c(n1)OCO2
+scaffold:     O=C(c1nc(-c2ccccc2)n2c1CCCCC2)N1CC([*:1])C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]OC </R1>
+scaffold:     O=C(Oc1ccc([*:1])c([*:4])c1)c1cccc([*:2])c1[*:3]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C( P (O) (=O) O) (F) F <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> F <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> O <unk> < / R 3 > <unk> < R 4 >
+decorators_norm:  <R1> [*:1]C( P (O) (=O) O) (F) F </R1> <R2> [*:2]F </R2> <R3> [*:3]O </R3> <R4>
+invalid_after_assembly:   COC1CN(C(=O)c2nc(-c3ccccc3)n3c2CCCCC3)C1
+scaffold:     c1ccc(C(CN(Cc2c[nH]nc2-c2ccc([*:1])c([*:4])c2)[*:2])[*:3])cc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> F <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> O <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> CO <unk> < / R 3 > <unk> < R 4 > <unk> <unk> <unk> <unk> 4 <unk>
+decorators_norm:  <R1> [*:1]F </R1> <R2> [*:2]O </R2> <R3> [*:3]CO </R3> <R4> 4
+invalid_after_assembly:   COC1CN(C(=O)c2nc(-c3ccccc3)n3c2CCCCC3)C1
+scaffold:     O=C1N(CCCc2ccccc2)CCCC1(CN1CCOCC1)[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]O </R1>
+scaffold:     O=S(=O)(CC1CCCCC1)NCC1([*:1])CCOCC1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(=O)N O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(=O)N O </R1>
+scaffold:     O=S(=O)(c1ccc([*:2])c([*:1])c1)N1CCn2c(nc3ccccc32)C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> F <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> F <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]F </R1> <R2> [*:2]F </R2>
+scaffold:     O=C(CCC1CCN(C(=O)C2([*:1])CCCCC2)CC1)NC1CC1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     O=C(c1cccc(-n2cnnn2)c1)N1CCCC([*:1])c2ccccc21
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(N C) =O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(N C) =O </R1>
+invalid_after_assembly:   CC1(C(=O)N2CCC(CCC(=O)NC3CC3)CC2)CCCCC1
+scaffold:     c1cc(CSc2nc3ncccc3o2)cc([*:1])c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Br <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]Br </R1>
+scaffold:     c1cc(-c2nnc(N3CCCC3)s2)c([*:1])cc1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> OC <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]OC </R1> <R2> [*:2]OC </R2>
+scaffold:     O=C(Cc1c[nH]c2cccc([*:1])c12)Nc1nnc(-c2ccccn2)s1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1>
+
+[GuacaMol] Sampling attempts:   0%|          | 17/80000 [00:15<17:23:05,  1.28try/s, succ_rate=87.50%, valid=14/10000] [A
+[GuacaMol] Sampling attempts:   0%|          | 17/80000 [00:15<17:23:05,  1.28try/s, succ_rate=88.24%, valid=15/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 18/80000 [00:15<17:23:04,  1.28try/s, succ_rate=88.89%, valid=16/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 21/80000 [00:15<17:23:02,  1.28try/s, succ_rate=80.95%, valid=17/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 24/80000 [00:15<17:22:59,  1.28try/s, succ_rate=75.00%, valid=18/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 25/80000 [00:15<17:22:59,  1.28try/s, succ_rate=76.00%, valid=19/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 26/80000 [00:15<17:22:58,  1.28try/s, succ_rate=76.92%, valid=20/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 27/80000 [00:15<17:22:57,  1.28try/s, succ_rate=77.78%, valid=21/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 29/80000 [00:15<17:22:55,  1.28try/s, succ_rate=75.86%, valid=22/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 30/80000 [00:15<17:22:55,  1.28try/s, succ_rate=76.67%, valid=23/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 31/80000 [00:15<17:22:54,  1.28try/s, succ_rate=77.42%, valid=24/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 32/80000 [00:15<17:22:53,  1.28try/s, succ_rate=78.12%, valid=25/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 33/80000 [00:22<12:45:00,  1.74try/s, succ_rate=78.12%, valid=25/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 33/80000 [00:22<12:45:00,  1.74try/s, succ_rate=78.79%, valid=26/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 34/80000 [00:22<12:45:00,  1.74try/s, succ_rate=79.41%, valid=27/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 35/80000 [00:22<12:44:59,  1.74try/s, succ_rate=80.00%, valid=28/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 36/80000 [00:22<12:44:58,  1.74try/s, succ_rate=80.56%, valid=29/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 37/80000 [00:22<12:44:58,  1.74try/s, succ_rate=81.08%, valid=30/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 38/80000 [00:22<12:44:57,  1.74try/s, succ_rate=81.58%, valid=31/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 39/80000 [00:22<12:44:57,  1.74try/s, succ_rate=82.05%, valid=32/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 40/80000 [00:22<12:44:56,  1.74try/s, succ_rate=82.50%, valid=33/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 41/80000 [00:22<12:44:56,  1.74try/s, succ_rate=82.93%, valid=34/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 42/80000 [00:22<12:44:55,  1.74try/s, succ_rate=83.33%, valid=35/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 43/80000 [00:22<12:44:54,  1.74try/s, succ_rate=83.72%, valid=36/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 44/80000 [00:22<12:44:54,  1.74try/s, succ_rate=84.09%, valid=37/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 45/80000 [00:22<12:44:53,  1.74try/s, succ_rate=84.44%, valid=38/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 46/80000 [00:22<12:44:53,  1.74try/s, succ_rate=84.78%, valid=39/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 47/80000 [00:22<12:44:52,  1.74try/s, succ_rate=85.11%, valid=40/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 48/80000 [00:22<12:44:52,  1.74try/s, succ_rate=85.42%, valid=41/10000][Ascaffold:     c1csc(-c2ccc3[nH]c(N4CCC([*:1])CC4)nc3c2)n1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(N)=O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(N)=O </R1>
+scaffold:     c1cc(Nc2nc3ccccc3c3nnc([*:2])n23)cc([*:1])c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> F <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]F </R1> <R2> [*:2]C </R2>
+scaffold:     c1cc([*:2])c([*:3])cc1-c1nnnn1C1CCCC1[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> N C(C)=O <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]N C(C)=O </R1> <R2> [*:2]C </R2> <R3> [*:3]C </R3>
+scaffold:     O=C1CCC(c2nc([*:3])nn2-c2cc([*:1])ccc2[*:2])CN1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> F <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> Cl <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> CCC <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]F </R1> <R2> [*:2]Cl </R2> <R3> [*:3]CCC </R3>
+scaffold:     c1cnc2c(c1)nc(C1CCCC1)n2C1CCN([*:1])C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(C)C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(C)C </R1>
+scaffold:     O=C1CC(CNc2ccccc2[*:1])CN1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1>
+scaffold:     O=S(=O)(Cc1ccon1)N(CC1CC1)[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     O=c1oc2c3c(ccc2c([*:2])c1[*:1])OCN(Cc1ccco1)C3
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+scaffold:     c1cc([*:1])ccc1-c1cc([*:2])n2nc(N3CCOCC3)c([*:3])c2n1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1> <R2> [*:2]C </R2> <R3> [*:3]C </R3>
+scaffold:     c1cc([*:1])ccc1C1=Nn2cnnc2SC1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> F <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]F </R1>
+scaffold:     O=C(c1cc2occc2n1Cc1ccccc1[*:1])N1CCN([*:2])CC1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C(C)=O <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1> <R2> [*:2]C(C)=O </R2>
+scaffold:     O=C(NC(c1ccc([*:2])c([*:3])c1)[*:1])C1CCCN1c1ncccn1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> Cl <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> Cl <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]Cl </R2> <R3> [*:3]Cl </R3>
+scaffold:     c1ccc(CCSc2nnc(Cc3csc([*:1])n3)o2)nc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     O=c1nc([*:1])c2c([nH]1)CCC2
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> N <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]N </R1>
+scaffold:     c1cnc2c(c1)nc(C1CCCC1)n2C1CCN([*:1])C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(=O)O C(C)(C)C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(=O)O C(C)(C)C </R1>
+scaffold:     c1cc(-n2nc(C3CC3)nc2-c2ncc([*:2])cc2[*:3])cc([*:1])n1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C(F)(F)F <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> OC <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C(F)(F)F </R2> <R3> [*:3]OC </R3>
+scaffold:     O=C(Nc1ccc([*:1])cn1)c1onc(-c2ccncc2)c1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+scaffold:     O=C(c1ccncc1)N1CC(c2ccccc2)NCC1[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     O=C(OCc1c([*:1])cccc1[*:2])C1CC1[*:3]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> Cl <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C(=O)O <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1> <R2> [*:2]Cl </R2> <R3> [*:3]C(=O)O </R3>
+scaffold:     O=C1Nc2ccccc2SC1(C(=O)N1CCN([*:1])CC1)[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+scaffold:     O=C1OC(c2cc([*:1])c([*:4])cc2[*:3])CC1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > <unk> < R 4 > <unk> <unk> <unk> <unk> 4 <unk>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2> <R3> [*:3]C </R3> <R4> 4
+invalid_after_assembly:   CN1CCN(C(=O)C2(C)Sc3ccccc3NC2=O)CC1
+scaffold:     O=C(NCCC1=CCCCC1)C1c2ccccc2CCN1[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     c1ccc(CN2Cc3c(sc4c3CCCC4)N([*:1])C2)cc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     c1ccc([*:1])c(C2(c3nnc(-c4cnccn4)o3)CCOCC2)c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     c1nc([*:1])c2sc3nc([*:2])c4c(c3c2n1)CC([*:3])OC4
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> O <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> CC(C)C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk>
+decorators_norm:  <R1> [*:1]O </R1> <R2> [*:2]CC(C)C </R2> <R3> [*:3]C </R3> <R3> 3
+scaffold:     O=C(NCC(Cc1cccc([*:2])c1)n1cccc1)c1snnc1[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+scaffold:     c1cc([*:3])c(-c2nnc3sc(-c4snnc4[*:1])nn23)cc1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2> <R3> [*:3]C </R3>
+scaffold:     O=C(CNC(=O)C1CCCO1)c1cc([*:3])c([*:1])cc1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> [N+]([O-]) =O <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> Cl <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> Cl <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1][N+]([O-]) =O </R1> <R2> [*:2]Cl </R2> <R3> [*:3]Cl </R3>
+scaffold:     O=S(=O)(Nc1ccc2c(c1)N([*:1])CCC2)c1ccccc1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(C)=O <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> Br <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C(C)=O </R1> <R2> [*:2]Br </R2>
+scaffold:     O=C(c1ccc2nccn2c1)N1CC2([*:2])CC1CC([*:1])C2
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+invalid_after_assembly:   CC(=O)N1CCCc2ccc(NS(=O)(=O)c3ccccc3Br)cc21
+scaffold:     c1ccc(C2N=C([*:1])N=C([*:3])N2c2ccccc2[*:2])cc1
+decoded_raw:  
+[GuacaMol] Sampling attempts:   0%|          | 49/80000 [00:30<11:58:55,  1.85try/s, succ_rate=85.42%, valid=41/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 49/80000 [00:30<11:58:55,  1.85try/s, succ_rate=85.71%, valid=42/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 50/80000 [00:30<11:58:55,  1.85try/s, succ_rate=86.00%, valid=43/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 51/80000 [00:30<11:58:54,  1.85try/s, succ_rate=86.27%, valid=44/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 53/80000 [00:30<11:58:53,  1.85try/s, succ_rate=84.91%, valid=45/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 54/80000 [00:30<11:58:53,  1.85try/s, succ_rate=85.19%, valid=46/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 55/80000 [00:30<11:58:52,  1.85try/s, succ_rate=85.45%, valid=47/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 56/80000 [00:30<11:58:52,  1.85try/s, succ_rate=85.71%, valid=48/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 57/80000 [00:30<11:58:51,  1.85try/s, succ_rate=85.96%, valid=49/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 58/80000 [00:30<11:58:51,  1.85try/s, succ_rate=86.21%, valid=50/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 59/80000 [00:30<11:58:50,  1.85try/s, succ_rate=86.44%, valid=51/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 60/80000 [00:30<11:58:50,  1.85try/s, succ_rate=86.67%, valid=52/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 62/80000 [00:30<11:58:48,  1.85try/s, succ_rate=85.48%, valid=53/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 63/80000 [00:30<11:58:48,  1.85try/s, succ_rate=85.71%, valid=54/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 64/80000 [00:30<11:58:47,  1.85try/s, succ_rate=85.94%, valid=55/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 65/80000 [00:38<11:41:21,  1.90try/s, succ_rate=85.94%, valid=55/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 65/80000 [00:38<11:41:21,  1.90try/s, succ_rate=86.15%, valid=56/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 66/80000 [00:38<11:41:20,  1.90try/s, succ_rate=86.36%, valid=57/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 67/80000 [00:38<11:41:20,  1.90try/s, succ_rate=86.57%, valid=58/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 68/80000 [00:38<11:41:19,  1.90try/s, succ_rate=86.76%, valid=59/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 69/80000 [00:38<11:41:19,  1.90try/s, succ_rate=86.96%, valid=60/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 70/80000 [00:38<11:41:18,  1.90try/s, succ_rate=87.14%, valid=61/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 71/80000 [00:38<11:41:17,  1.90try/s, succ_rate=87.32%, valid=62/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 72/80000 [00:38<11:41:17,  1.90try/s, succ_rate=87.50%, valid=63/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 74/80000 [00:38<11:41:16,  1.90try/s, succ_rate=86.49%, valid=64/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 75/80000 [00:38<11:41:15,  1.90try/s, succ_rate=86.67%, valid=65/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 76/80000 [00:38<11:41:15,  1.90try/s, succ_rate=86.84%, valid=66/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 77/80000 [00:38<11:41:14,  1.90try/s, succ_rate=87.01%, valid=67/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 78/80000 [00:38<11:41:14,  1.90try/s, succ_rate=87.18%, valid=68/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 79/80000 [00:38<11:41:13,  1.90try/s, succ_rate=87.34%, valid=69/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 80/80000 [00:38<11:41:13,  1.90try/s, succ_rate=87.50%, valid=70/10000][A<pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> N <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> N <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> N <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]N </R1> <R2> [*:2]N </R2> <R3> [*:3]N </R3>
+scaffold:     O=C(Nc1nc(C2CC2)cs1)c1cc([*:1])c([*:2])s1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C(C)=O <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C(C)=O </R2>
+scaffold:     O=C(Oc1ccc2cn[nH]c2c1)c1ccn(-c2ccc([*:1])cc2)n1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> F <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]F </R1>
+scaffold:     O=C(Cn1cc2c(n1)CCC([*:1])C2)NC1CCCCC1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+scaffold:     c1cc2c(cc1-c1cn3cc([*:2])cc([*:1])c3n1)CCC2
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> O <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> S(=O) ( N CCO) =O <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]O </R1> <R2> [*:2]S(=O) ( N CCO) =O </R2>
+scaffold:     c1sc(C2CN(C(c3nc(C4CC4)no3)[*:2])CCO2)nc1[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+scaffold:     c1cnc2cc([*:1])ccc2c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(=O) CC( CCCC) O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(=O) CC( CCCC) O </R1>
+scaffold:     c1ccc(Sc2cc(N3CCOCC3)ccc2[*:1])cc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> N C(N)=N <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]N C(N)=N </R1>
+scaffold:     c1cc(CNC(C(c2ccc([*:3])cc2)[*:2])[*:1])c[nH]1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> O <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2> <R3> [*:3]O </R3>
+scaffold:     O=C(NC1CCC(Oc2ccc([*:2])cn2)CC1)c1cc([*:1])ncn1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> O CCC F <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]O CCC F </R1> <R2> [*:2]C </R2>
+scaffold:     O=C(c1ccc2c(c1)S(=O)(=O)N([*:1])C2=O)N1CCCC([*:2])C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> CCC <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C(=O)OCC <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]CCC </R1> <R2> [*:2]C(=O)OCC </R2>
+scaffold:     O=C(Nc1ccccc1)C1CCc2ccccc2N1[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C( CC) =O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C( CC) =O </R1>
+invalid_after_assembly:   CCCN1C(=O)c2ccc(C(=O)N3CCCC(C(=O)OCC)C3)cc2S1(=O)=O
+scaffold:     O=C(CNc1cccc([*:1])c1)NC(c1ccco1)[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> [N+](=O)[O-] <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1][N+](=O)[O-] </R1> <R2> [*:2]C </R2>
+scaffold:     O=C1CCCc2c1c([*:1])c([*:2])n2CCc1ccccc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(=O)OC <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C(=O)OC </R1> <R2> [*:2]C </R2>
+scaffold:     O=S(=O)(c1ccc([*:1])c([*:3])c1[*:2])N1CCN=C1c1ccccc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> F <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> F <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> F <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]F </R1> <R2> [*:2]F </R2> <R3> [*:3]F </R3>
+scaffold:     O=C(Cn1ccnc1)NCC1COc2cc([*:1])ccc2C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]OC </R1>
+scaffold:     O=C1CCc2cc(C(=O)N(C(c3cccs3)[*:1])[*:2])ccc2N1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+scaffold:     O=S(=O)(c1cccc2cc([*:3])cnc12)N(c1ccc([*:1])nc1)[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1> <R2> [*:2]C </R2> <R3> [*:3]C </R3>
+scaffold:     c1oc(C2COCCN2C2CCOCC2)nc1[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     O=c1n(CCCOc2cccc([*:1])c2)nnn1-c1ccccc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]OC </R1>
+scaffold:     O=C(NC1CCCc2cn(C3CCCC3)nc21)c1ccc([*:1])nn1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]O </R1>
+scaffold:     c1ccc(C2NC3(CO2)COC([*:1])OC3)nc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R1> [*:1]C </R1>
+invalid_after_assembly:   O=C(NC1CCCc2cn(C3CCCC3)nc21)c1ccc(O)nn1
+scaffold:     O=C(N=c1[nH]c2ccccc2[nH]1)c1c([*:3])nn2c([*:2])cc([*:1])nc12
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> O CCC <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> CCC <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]O CCC </R2> <R3> [*:3]CCC </R3>
+scaffold:     c1nc2cc([*:1])c([*:4])cc2c([*:3])c1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> O <unk> < / R 3 > <unk> < R 4 > <unk> <unk> <unk> <unk> 4 <unk>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2> <R3> [*:3]O </R3> <R4> 4
+invalid_after_assembly:   CCCc1nn2c(O)cc(C)nc2c1C(=O)N=c1[nH]c2ccccc2[nH]1
+scaffold:     O=C(c1ccco1)c1c(-c2cccnc2)coc1[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     O=C1CCC(NCC2=COCCO2)C(c2ccccc2[*:1])N1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1>
+scaffold:     c1cc([*:1])cc(CC(N(Cc2cc([*:4])n(-n3cnnc3)c2[*:5])[*:3])[*:2])n1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> F <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > <unk> < R 4 > <unk> <unk> <unk> <unk> 4 <unk>
+decorators_norm:  <R1> [*:1]F </R1> <R2> [*:2]C </R2> <R3> [*:3]C </R3> <R4> 4
+invalid_after_assembly:   O=C1CCC(NCC2=COCCO2)C(c2ccccc2Cl)N1
+scaffold:     O=C(CN1C(=O)CSc2ncccc21)Nc1ccc([*:1])cc1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+scaffold:     O=C(Oc1ccc([*:1])c([*:4])c1)c1cccc([*:2])c1[*:3]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> F <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> F <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C#N <unk> < / R 3 > <unk> < R 4 > <unk> <unk> <unk> <unk> 4 <unk>
+decorators_norm:  <R1> [*:1]F </R1> <R2> [*:2]F </R2> <R3> [*:3]C#N </R3> <R4> 4
+invalid_after_assembly:   Cc1ccc(NC(=O)CN2C(=O)CSc3ncccc32)c(C)c1
+scaffold:     O=c1c([*:1])cn(-c2ccc([*:2])cc2[*:3])cc1[*:4]
+decoded_raw:  
+[GuacaMol] Sampling attempts:   0%|          | 81/80000 [00:46<11:21:58,  1.95try/s, succ_rate=87.50%, valid=70/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 81/80000 [00:46<11:21:58,  1.95try/s, succ_rate=87.65%, valid=71/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 82/80000 [00:46<11:21:58,  1.95try/s, succ_rate=87.80%, valid=72/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 84/80000 [00:46<11:21:57,  1.95try/s, succ_rate=86.90%, valid=73/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 86/80000 [00:46<11:21:56,  1.95try/s, succ_rate=86.05%, valid=74/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 87/80000 [00:46<11:21:55,  1.95try/s, succ_rate=86.21%, valid=75/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 89/80000 [00:46<11:21:54,  1.95try/s, succ_rate=85.39%, valid=76/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 93/80000 [00:46<11:21:52,  1.95try/s, succ_rate=82.80%, valid=77/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 95/80000 [00:46<11:21:51,  1.95try/s, succ_rate=82.11%, valid=78/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 96/80000 [00:46<11:21:51,  1.95try/s, succ_rate=82.29%, valid=79/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 97/80000 [00:53<11:01:37,  2.01try/s, succ_rate=82.29%, valid=79/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 97/80000 [00:53<11:01:37,  2.01try/s, succ_rate=82.47%, valid=80/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 100/80000 [00:53<11:01:36,  2.01try/s, succ_rate=80.00%, valid=80/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 101/80000 [00:53<11:01:35,  2.01try/s, succ_rate=80.20%, valid=81/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 102/80000 [00:53<11:01:35,  2.01try/s, succ_rate=80.39%, valid=82/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 103/80000 [00:53<11:01:34,  2.01try/s, succ_rate=80.58%, valid=83/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 106/80000 [00:53<11:01:33,  2.01try/s, succ_rate=79.25%, valid=84/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 108/80000 [00:53<11:01:32,  2.01try/s, succ_rate=78.70%, valid=85/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 109/80000 [00:53<11:01:31,  2.01try/s, succ_rate=78.90%, valid=86/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 110/80000 [00:53<11:01:31,  2.01try/s, succ_rate=79.09%, valid=87/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 111/80000 [00:53<11:01:30,  2.01try/s, succ_rate=79.28%, valid=88/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 112/80000 [00:53<11:01:30,  2.01try/s, succ_rate=79.46%, valid=89/10000][A<pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(=O)N (C)C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> F <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> F <unk> < / R 3 > <unk> < R 4 > <unk> <unk> <unk> <unk> 4
+decorators_norm:  <R1> [*:1]C(=O)N (C)C </R1> <R2> [*:2]F </R2> <R3> [*:3]F </R3> <R4> 4
+invalid_after_assembly:   Cc1ccc(NC(=O)CN2C(=O)CSc3ncccc32)c(C)c1
+scaffold:     c1cc([*:1])c(-n2c([*:2])ccc2[*:3])s1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C( NC( CC(C)C) C(=O)NO) =O <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C( NC( CC(C)C) C(=O)NO) =O </R1> <R2> [*:2]C </R2> <R3> [*:3]C </R3>
+invalid_after_assembly:   Cc1ccc(NC(=O)CN2C(=O)CSc3ncccc32)c(C)c1
+scaffold:     c1ccc(CN2Cc3c(sc4c3CCCC4)N([*:1])C2)cc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     c1cnc2c(c1)nc(C1CCCC1)n2C1CCN([*:1])C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(CO C) =O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(CO C) =O </R1>
+invalid_after_assembly:   CN1CN(Cc2ccccc2)Cc2c1sc1c2CCCC1
+scaffold:     O=C(COC(=O)c1ccoc1[*:2])c1ccc([*:1])cc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> S(=O) ( N(C)C) =O <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]S(=O) ( N(C)C) =O </R1> <R2> [*:2]C </R2>
+scaffold:     O=C(Nc1snnc1[*:1])c1oc2ccccc2c1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+scaffold:     O=C(C1c2ccccc2-c2ccccc21)N1CCOCC([*:1])C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> O CC= C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]O CC= C </R1>
+scaffold:     c1cc([*:2])ccc1CC(Nc1nc([*:3])cc([*:4])n1)[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> CO <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> OC <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > <unk> < R 4 > <unk> <unk> <unk> <unk> 4 <unk>
+decorators_norm:  <R1> [*:1]CO </R1> <R2> [*:2]OC </R2> <R3> [*:3]C </R3> <R4> 4
+invalid_after_assembly:   O=C(C1c2ccccc2-c2ccccc21)N1CCOCC(O)C1
+scaffold:     c1ccc(Cc2cc(C3CCN(c4nccnc4[*:1])CC3)[nH]n2)cc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C( CCC) CCC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C( CCC) CCC </R1>
+invalid_after_assembly:   O=C(C1c2ccccc2-c2ccccc21)N1CCOCC(O)C1
+scaffold:     O=C(NC(C(Oc1ccccc1[*:4])[*:3])[*:1])c1cc([*:2])c[nH]1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> Cl <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C(=O)N N <unk> < / R 3 > <unk> < R 4 > <unk> <unk> <unk> <unk> 4
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]Cl </R2> <R3> [*:3]C(=O)N N </R3> <R4> 4
+invalid_after_assembly:   O=C(C1c2ccccc2-c2ccccc21)N1CCOCC(O)C1
+scaffold:     O=C(Nc1cc([*:1])[nH]n1)c1sc([*:2])nc1[*:3]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> N C(C)=O <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]N C(C)=O </R2> <R3> [*:3]C </R3>
+scaffold:     c1ccc([*:1])c(C2NCc3n[nH]cc32)c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C#N <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C#N </R1>
+scaffold:     c1cc(Cn2cccn2)cc(Nc2ncnc3[nH]c([*:1])nc23)c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     c1ccc(C(Cc2nnc(SCc3noc(C4CC4)n3)o2)[*:1])cc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> O <unk> < / R 1 > <unk> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(F)(F)F <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]O </R1> <R1> [*:1]C(F)(F)F </R1>
+invalid_after_assembly:   Cc1nc2c(Nc3cccc(Cn4cccn4)c3)ncnc2[nH]1
+scaffold:     c1c([*:1])cc([*:6])c(OCC(CN2CC([*:4])OC([*:5])C2)[*:3])c1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> O <unk> < / R 3 > <unk> < R 4 > <unk> <unk> <unk> <unk> 4 <unk>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2> <R3> [*:3]O </R3> <R4> 4
+invalid_after_assembly:   Cc1nc2c(Nc3cccc(Cn4cccn4)c3)ncnc2[nH]1
+scaffold:     c1nc2nc([*:1])cc(SCc3cc4c(cc3[*:2])OCO4)n2n1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> Br <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]Br </R2>
+scaffold:     O=C(NCc1ccccc1)N1CC2CC([*:1])N([*:2])C2C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C( C(N CC) =O) C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C( C(N CC) =O) C </R2>
+invalid_after_assembly:   Cc1cc(SCc2cc3c(cc2Br)OCO3)n2ncnc2n1
+scaffold:     O=C(NC1CC1c1cccc([*:1])c1)c1n[nH]c(=O)[nH]1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]OC </R1>
+scaffold:     c1ccc(-c2c([*:3])c([*:2])nc3nc([*:1])sc23)cc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> N <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C(N)=O <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]N </R2> <R3> [*:3]C(N)=O </R3>
+scaffold:     c1ccc(-c2ccc([*:1])o2)c(CN2CCCC(N3CCOCC3)C2)c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(O) =O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(O) =O </R1>
+scaffold:     c1cc([*:3])ccc1NC(c1ccc([*:1])o1)[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(OC) =O <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C(F)(F)F <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C(OC) =O </R1> <R2> [*:2]C </R2> <R3> [*:3]C(F)(F)F </R3>
+scaffold:     c1coc(COCCNc2ccc([*:1])cc2)c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]OC </R1>
+scaffold:     O=C(Nc1cc([*:1])nn1Cc1cccc2ccccc12)c1cccnc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(C)(C)C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(C)(C)C </R1>
+scaffold:     c1nc(Nc2ccc([*:1])c([*:2])c2)c2nc3n(c2n1)CCCC3
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> F <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> Cl <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]F </R1> <R2> [*:2]Cl </R2>
+scaffold:     O=C(Cc1ccc([*:1])c([*:2])c1)Nc1nnc(Cc2cccs2)o1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> Cl <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1> <R2> [*:2]Cl </R2>
+scaffold:     c1ccc(Cc2nc(CNC3([*:1])CCCCC3)cs2)cc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(O CC) =O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(O CC) =O </R1>
+invalid_after_assembly:   O=C(Cc1ccc(Cl)c(Cl)c1)Nc1nnc(Cc2cccs2)o1
+scaffold:     O=C(NC(c1nnc2n1CCC2)[*:1])c1ccc2c(c1)CCO2
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> CC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]CC </R1>
+scaffold:     O=c1oc2ccc([*:1])cc2cc1-c1ccncc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1>
+scaffold:     O=C(c1cnc(Cc2ccccc2)s1)N(CCc1ccccn1)[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(C)C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(C)C </R1>
+scaffold:     O=C(NCc1ccnc(-n2ccnc2)c1)c1ccc([*:1])[nH]c1=O
+decoded_raw:  
+[GuacaMol] Sampling attempts:   0%|          | 113/80000 [00:58<9:30:26,  2.33try/s, succ_rate=79.46%, valid=89/10000] [A
+[GuacaMol] Sampling attempts:   0%|          | 113/80000 [00:58<9:30:26,  2.33try/s, succ_rate=79.65%, valid=90/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 114/80000 [00:58<9:30:25,  2.33try/s, succ_rate=79.82%, valid=91/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 115/80000 [00:58<9:30:25,  2.33try/s, succ_rate=80.00%, valid=92/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 117/80000 [00:58<9:30:24,  2.33try/s, succ_rate=79.49%, valid=93/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 118/80000 [00:58<9:30:23,  2.33try/s, succ_rate=79.66%, valid=94/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 119/80000 [00:58<9:30:23,  2.33try/s, succ_rate=79.83%, valid=95/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 120/80000 [00:58<9:30:23,  2.33try/s, succ_rate=80.00%, valid=96/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 121/80000 [00:58<9:30:22,  2.33try/s, succ_rate=80.17%, valid=97/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 122/80000 [00:58<9:30:22,  2.33try/s, succ_rate=80.33%, valid=98/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 123/80000 [00:58<9:30:21,  2.33try/s, succ_rate=80.49%, valid=99/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 124/80000 [00:58<9:30:21,  2.33try/s, succ_rate=80.65%, valid=100/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 125/80000 [00:58<9:30:21,  2.33try/s, succ_rate=80.00%, valid=100/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 126/80000 [00:58<9:30:20,  2.33try/s, succ_rate=80.16%, valid=101/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 127/80000 [00:58<9:30:20,  2.33try/s, succ_rate=80.31%, valid=102/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 128/80000 [00:58<9:30:19,  2.33try/s, succ_rate=80.47%, valid=103/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 129/80000 [01:04<9:06:52,  2.43try/s, succ_rate=80.47%, valid=103/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 129/80000 [01:04<9:06:52,  2.43try/s, succ_rate=80.62%, valid=104/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 130/80000 [01:04<9:06:51,  2.43try/s, succ_rate=80.77%, valid=105/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 131/80000 [01:04<9:06:51,  2.43try/s, succ_rate=80.92%, valid=106/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 132/80000 [01:04<9:06:51,  2.43try/s, succ_rate=81.06%, valid=107/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 133/80000 [01:04<9:06:50,  2.43try/s, succ_rate=81.20%, valid=108/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 134/80000 [01:04<9:06:50,  2.43try/s, succ_rate=81.34%, valid=109/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 135/80000 [01:04<9:06:49,  2.43try/s, succ_rate=81.48%, valid=110/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 136/80000 [01:04<9:06:49,  2.43try/s, succ_rate=81.62%, valid=111/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 137/80000 [01:04<9:06:49,  2.43try/s, succ_rate=81.75%, valid=112/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 139/80000 [01:04<9:06:48,  2.43try/s, succ_rate=81.29%, valid=113/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 140/80000 [01:04<9:06:47,  2.43try/s, succ_rate=81.43%, valid=114/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 141/80000 [01:04<9:06:47,  2.43try/s, succ_rate=81.56%, valid=115/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 142/80000 [01:04<9:06:46,  2.43try/s, succ_rate=81.69%, valid=116/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 143/80000 [01:04<9:06:46,  2.43try/s, succ_rate=81.82%, valid=117/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 144/80000 [01:04<9:06:46,  2.43try/s, succ_rate=81.94%, valid=118/10000][A<pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     O=C(CSc1ccccc1)N1CC(OCc2ccc([*:1])cc2)C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(F)(F)F <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(F)(F)F </R1>
+scaffold:     c1csc(CCNCc2ccc([*:1])cc2)c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]OC </R1>
+scaffold:     O=C(OC(CCn1cccn1)[*:1])c1ccsc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     c1cnc2c(CN3CC(n4cc([*:1])cn4)C3)ccc([*:2])c2c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> F <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1> <R2> [*:2]F </R2>
+scaffold:     O=C(NCCC1=CCOCC1)N1CCOCC1[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> NC( OC) =O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]NC( OC) =O </R1>
+invalid_after_assembly:   Fc1ccc(CN2CC(n3cc(Cl)cn3)C2)c2ncccc12
+scaffold:     O=C(Nc1ccccc1)C1=C([*:1])Nc2nnnn2C1c1ccccn1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     c1ccc([*:1])c(C(Nc2nnc(C3CC3)o2)[*:2])c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1> <R2> [*:2]C </R2>
+scaffold:     c1[nH]nc([*:1])c1CN1CCC([*:2])C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> N <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> O <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]N </R1> <R2> [*:2]O </R2>
+scaffold:     O=C(c1sccc1[*:2])N1CCOC2CC([*:1])CC21
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> CO <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]CO </R1> <R2> [*:2]C </R2>
+scaffold:     O=S1(=O)N=C(CN(c2ccc([*:2])cc2)[*:1])Nc2ccccc21
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> F <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]F </R2>
+scaffold:     C(#Cc1cc2cccnc2[nH]1)c1ccc([*:1])nc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1>
+scaffold:     O=C(c1ccc([*:3])cc1)C(n1cnc(-c2ccc([*:1])cc2)cc1=O)[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]OC </R1> <R2> [*:2]C </R2> <R3> [*:3]C </R3>
+scaffold:     C1Oc2nc([*:1])nc([*:2])c2O1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> N <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> N <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]N </R1> <R2> [*:2]N </R2>
+scaffold:     O=C(c1cnc(-c2cccnc2)nc1)N(Cc1noc2c1CCCC2)[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     O=C(Nc1ccc([*:1])cc1OCC1CC1)C1COc2ccccc2O1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]OC </R1>
+scaffold:     O=C(C(C12CC3CC(C1)CC([*:3])(C3)C2)[*:2])N1CC2CC2C1[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C#N <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> N <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> O <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C#N </R1> <R2> [*:2]N </R2> <R3> [*:3]O </R3>
+scaffold:     c1cc(-c2nn(Cc3ccc([*:1])cc3)c3c2CNCC3)ccn1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1>
+scaffold:     c1nc(CN(c2ncc([*:2])cc2[*:3])[*:1])cs1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> CC( C(F)(F)F) O <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C(F)(F)F <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> F <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]CC( C(F)(F)F) O </R1> <R2> [*:2]C(F)(F)F </R2> <R3> [*:3]F </R3>
+invalid_after_assembly:   Clc1ccc(Cn2nc(-c3ccncc3)c3c2CCNC3)cc1
+scaffold:     O=C1NC(c2ccccc2OCc2ccccn2)Nc2cccc([*:1])c21
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1>
+scaffold:     O=C(c1ccc2ccccc2c1[*:1])N1CCN(Cc2ccncc2)CC1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C#N <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C#N </R1>
+scaffold:     C1CCN(c2nc3c(s2)C([*:2])CC([*:3])C3)C([*:1])C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> N <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> O <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> O <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]N </R1> <R2> [*:2]O </R2> <R3> [*:3]O </R3>
+scaffold:     O=C(NCCOc1ccc2c(c1)OCO2)NC(c1ccccn1)[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     O=C(COC(=O)C1([*:1])CCCC1)N1CCCCCC1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C#N <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C#N </R1>
+scaffold:     O=C(Cn1sc2ccccc2c1=O)N(CCc1scnc1[*:1])[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+scaffold:     O=C(NC1CCN(c2ccccc2[*:3])C1)N1CC([*:1])CCC1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C#N <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> SC <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C#N </R2> <R3> [*:3]SC </R3>
+scaffold:     c1ccc(N(c2ccc3ccc([*:1])cn23)[*:2])cc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(C)=O <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C(C)=O </R1> <R2> [*:2]C </R2>
+scaffold:     O=C(Nc1cnn(C2CCOCC2)c1)c1c([*:1])nc2ccccn12
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> CC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]CC </R1>
+scaffold:     c1cc([*:1])ccc1NCC(c1ccc2c(c1)CCC2)[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> O <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]OC </R1> <R2> [*:2]O </R2>
+scaffold:     O=C(c1cn2ccsc2n1)N1CCC(c2ccc([*:1])cn2)([*:2])CC1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> F <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]F </R2>
+scaffold:     c1cc(N=C(CN2CCN([*:1])CC2)[*:2])cc([*:3])c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> S <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> OC <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]S </R2> <R3> [*:3]OC </R3>
+scaffold:     c1ccc(-c2ncn(CC(n3cncn3)[*:2])c2-c2ccc([*:1])o2)cc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(O) =O <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> O <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C(O) =O </R1> <R2> [*:2]O </R2>
+scaffold:     O=C(Nc1ccc(Oc2ncccn2)cc1)c1ccnc([*:1])c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]OC </R1>
+scaffold:     O=S1(=O)N=C(NC2CCOc3c2cccc3[*:1])c2ccccc21
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]OC </R1>
+scaffold:     O=C(NC1CC1)c1c(-c2cccs2)cnnc1[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> SC <unk> < / R 1 > </s>
+
+[GuacaMol] Sampling attempts:   0%|          | 145/80000 [01:10<8:58:10,  2.47try/s, succ_rate=81.94%, valid=118/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 145/80000 [01:10<8:58:10,  2.47try/s, succ_rate=82.07%, valid=119/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 146/80000 [01:10<8:58:09,  2.47try/s, succ_rate=82.19%, valid=120/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 147/80000 [01:10<8:58:09,  2.47try/s, succ_rate=82.31%, valid=121/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 148/80000 [01:10<8:58:09,  2.47try/s, succ_rate=82.43%, valid=122/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 149/80000 [01:10<8:58:08,  2.47try/s, succ_rate=82.55%, valid=123/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 150/80000 [01:10<8:58:08,  2.47try/s, succ_rate=82.67%, valid=124/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 151/80000 [01:10<8:58:07,  2.47try/s, succ_rate=82.78%, valid=125/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 152/80000 [01:10<8:58:07,  2.47try/s, succ_rate=82.89%, valid=126/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 153/80000 [01:10<8:58:07,  2.47try/s, succ_rate=83.01%, valid=127/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 154/80000 [01:10<8:58:06,  2.47try/s, succ_rate=83.12%, valid=128/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 156/80000 [01:10<8:58:05,  2.47try/s, succ_rate=82.69%, valid=129/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 157/80000 [01:10<8:58:05,  2.47try/s, succ_rate=82.80%, valid=130/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 158/80000 [01:10<8:58:05,  2.47try/s, succ_rate=82.91%, valid=131/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 159/80000 [01:10<8:58:04,  2.47try/s, succ_rate=83.02%, valid=132/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 160/80000 [01:10<8:58:04,  2.47try/s, succ_rate=83.12%, valid=133/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 161/80000 [01:17<9:08:44,  2.42try/s, succ_rate=83.12%, valid=133/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 161/80000 [01:17<9:08:44,  2.42try/s, succ_rate=83.23%, valid=134/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 162/80000 [01:17<9:08:44,  2.42try/s, succ_rate=83.33%, valid=135/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 163/80000 [01:17<9:08:43,  2.42try/s, succ_rate=83.44%, valid=136/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 164/80000 [01:17<9:08:43,  2.42try/s, succ_rate=83.54%, valid=137/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 165/80000 [01:17<9:08:42,  2.42try/s, succ_rate=83.64%, valid=138/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 167/80000 [01:17<9:08:42,  2.42try/s, succ_rate=83.23%, valid=139/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 168/80000 [01:17<9:08:41,  2.42try/s, succ_rate=83.33%, valid=140/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 169/80000 [01:17<9:08:41,  2.42try/s, succ_rate=83.43%, valid=141/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 172/80000 [01:17<9:08:39,  2.42try/s, succ_rate=82.56%, valid=142/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 173/80000 [01:17<9:08:39,  2.42try/s, succ_rate=82.66%, valid=143/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 174/80000 [01:17<9:08:39,  2.42try/s, succ_rate=82.76%, valid=144/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 175/80000 [01:17<9:08:38,  2.42try/s, succ_rate=82.29%, valid=144/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 176/80000 [01:17<9:08:38,  2.42try/s, succ_rate=82.39%, valid=145/10000][Adecorators_norm:  <R1> [*:1]SC </R1>
+scaffold:     O=c1c2cc([*:4])c([*:1])nc2ccn1CCCn1nc([*:2])nc1[*:3]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> N(C) C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > <unk> < R 4 > <unk> <unk> <unk> <unk> 4
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]N(C) C </R2> <R3> [*:3]C </R3> <R4> 4
+invalid_after_assembly:   CSc1nncc(-c2cccs2)c1C(=O)NC1CC1
+scaffold:     c1csc(C2CC(c3ccc([*:1])cc3)Nc3nnnn32)c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     C1=C(c2cccs2)CCN([*:1])C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> CCC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]CCC </R1>
+scaffold:     c1ccc2nc3c(cc2c1)CSc1nnc([*:1])n1-3
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> N <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]N </R1>
+scaffold:     O=S(=O)(c1ccc([*:2])c([*:1])c1)N1CCn2c(nc3ccccc32)C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> F <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1> <R2> [*:2]F </R2>
+scaffold:     O=C(C(Sc1ccc([*:1])cc1)[*:2])N(Cc1ncc[nH]1)[*:3]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C(C)C <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2> <R3> [*:3]C(C)C </R3>
+scaffold:     O=C1OCc2c1c1c(c([*:1])c2[*:2])CCO1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> O <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> CCC <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]O </R1> <R2> [*:2]CCC </R2>
+scaffold:     c1cc([*:2])c2nc(N3CCCCC3[*:1])ccc2c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+scaffold:     O=C(Cn1ccnc1-c1ccccc1)NC1COCC1[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     c1cc(-c2nc3ncc([*:1])c([*:2])n3n2)ccn1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Br <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> S CC(=O)O <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]Br </R1> <R2> [*:2]S CC(=O)O </R2>
+scaffold:     O=C(NCC(COc1ccccc1)[*:1])Nc1nccs1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]O </R1>
+scaffold:     O=C(c1cc([*:2])c([*:1])c([*:4])c1)N(CCc1cn[nH]c1)[*:3]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> OC <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> CC <unk> < / R 3 > <unk> < R 4 > <unk> <unk> <unk> <unk> 4 <unk>
+decorators_norm:  <R1> [*:1]OC </R1> <R2> [*:2]OC </R2> <R3> [*:3]CC </R3> <R4> 4
+invalid_after_assembly:   O=C(NCC(O)COc1ccccc1)Nc1nccs1
+scaffold:     c1cc(CNC(c2nnc3ccccn23)[*:1])cc([*:2])c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C(F)(F)F <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C(F)(F)F </R2>
+scaffold:     O=C(CCc1nccs1)N1CCCc2c([*:2])ccc([*:1])c21
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> Cl <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1> <R2> [*:2]Cl </R2>
+scaffold:     c1cnc2c(CN3CC(n4cc([*:1])cn4)C3)ccc([*:2])c2c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> CO <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]CO </R1> <R2> [*:2]C </R2>
+scaffold:     O=C(CCNc1ncccn1)NC1CC2CCC1([*:2])C2[*:1]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+invalid_after_assembly:   Cc1ccc(CN2CC(n3cc(CO)cn3)C2)c2ncccc12
+scaffold:     O=C(c1cc2sc3ccccc3c2s1)N1CCOC([*:1])C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(N C(C)C) =O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(N C(C)C) =O </R1>
+invalid_after_assembly:   Cc1ccc(CN2CC(n3cc(CO)cn3)C2)c2ncccc12
+scaffold:     c1cc(CNc2sc([*:2])cc2[*:3])nc([*:1])c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> Cl <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C(=O)N <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> [N+](=O)[O-] <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]Cl </R1> <R2> [*:2]C(=O)N </R2> <R3> [*:3][N+](=O)[O-] </R3>
+scaffold:     c1cnn(C2CCN([*:1])c3ccc(NC4CCOC4)cc32)c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(=O) CC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(=O) CC </R1>
+scaffold:     O=C(Nc1cccc(Oc2cccnn2)c1)c1cc([*:1])n(C2CC2)c1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+scaffold:     O=C(NCC(N1CC([*:1])OC([*:4])C1)[*:2])C1CC1[*:3]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> O <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > <unk> < R 4 > <unk> <unk> <unk> <unk> 4 <unk>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]O </R2> <R3> [*:3]C </R3> <R4> 4
+invalid_after_assembly:   Cc1cc(C(=O)Nc2cccc(Oc3cccnn3)c2)c(C)n1C1CC1
+scaffold:     O=C(c1ccc([*:1])nc1)N1CCCCC1CCc1cccs1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     c1ccc(Nc2ncnc(N3CCc4ccccc4C3)c2[*:1])nc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     O=C(c1cc(C2CC2)nc2onc([*:1])c12)N1CCCC1c1ccc[nH]1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     c1ccc(-c2c([*:2])nn3c(N4CCCC([*:3])C4)c([*:4])c([*:1])nc23)cc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C( N( CC) CC) =O <unk> < / R 3 > <unk> < R 4 > <unk> <unk>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2> <R3> [*:3]C( N( CC) CC) =O </R3> <R4>
+invalid_after_assembly:   Cc1noc2nc(C3CC3)cc(C(=O)N3CCCC3c3ccc[nH]3)c12
+scaffold:     O=C(OC(C1CC1)[*:1])c1ccc(-n2cnc3ccccc32)nc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R1> [*:1]C </R1>
+invalid_after_assembly:   Cc1noc2nc(C3CC3)cc(C(=O)N3CCCC3c3ccc[nH]3)c12
+scaffold:     O=c1cc(CNCc2noc([*:1])n2)[nH]c2c([*:3])ccc([*:2])c12
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> CC <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> Cl <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]CC </R1> <R2> [*:2]C </R2> <R3> [*:3]Cl </R3>
+scaffold:     O=C(NCCNc1nc2ccc([*:1])cc2cc1[*:2])c1cnccn1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> OC <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> Cl <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]OC </R1> <R2> [*:2]Cl </R2>
+scaffold:     O=S(=O)(Nc1cccc2c1OCCO2)N1CC([*:1])OCC1[*:2]
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > </s>
+
+[GuacaMol] Sampling attempts:   0%|          | 177/80000 [01:24<9:14:24,  2.40try/s, succ_rate=82.39%, valid=145/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 177/80000 [01:24<9:14:24,  2.40try/s, succ_rate=82.49%, valid=146/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 178/80000 [01:24<9:14:24,  2.40try/s, succ_rate=82.58%, valid=147/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 181/80000 [01:24<9:14:22,  2.40try/s, succ_rate=81.77%, valid=148/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 182/80000 [01:24<9:14:22,  2.40try/s, succ_rate=81.87%, valid=149/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 184/80000 [01:24<9:14:21,  2.40try/s, succ_rate=81.52%, valid=150/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 185/80000 [01:24<9:14:21,  2.40try/s, succ_rate=81.62%, valid=151/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 186/80000 [01:24<9:14:20,  2.40try/s, succ_rate=81.72%, valid=152/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 187/80000 [01:24<9:14:20,  2.40try/s, succ_rate=81.82%, valid=153/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 188/80000 [01:24<9:14:19,  2.40try/s, succ_rate=81.91%, valid=154/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 190/80000 [01:24<9:14:19,  2.40try/s, succ_rate=81.58%, valid=155/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 191/80000 [01:24<9:14:18,  2.40try/s, succ_rate=81.68%, valid=156/10000][A
+[GuacaMol] Sampling attempts:   0%|          | 192/80000 [01:24<9:14:18,  2.40try/s, succ_rate=81.77%, valid=157/10000][A
+                                                                                                                       [ATraceback (most recent call last):
+  File "/home/enriquefbrt/TFG/src/tfg_molecular_generation/guacamol_benchmark.py", line 278, in _generate_batch_from_scaffolds
+    assembled = attach_decorators_to_scaffold(scaffold, decorators)
+  File "/home/enriquefbrt/TFG/src/tfg_molecular_generation/decorator_utils.py", line 159, in attach_decorators_to_scaffold
+    raise ValueError(f"Invalid decorator SMILES for R{label}: {decorators[label]}")
+ValueError: Invalid decorator SMILES for R1: [*:1]NC( CC) =O
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/home/enriquefbrt/TFG/src/tfg_molecular_generation/guacamol_benchmark.py", line 885, in <module>
+    main()
+  File "/home/enriquefbrt/TFG/src/tfg_molecular_generation/guacamol_benchmark.py", line 826, in main
+    result = benchmark.assess_model(generator)
+  File "/home/enriquefbrt/TFG/.venv/lib/python3.10/site-packages/guacamol/distribution_learning_benchmark.py", line 69, in assess_model
+    molecules = model.generate(number_samples=self.number_samples)
+  File "/home/enriquefbrt/TFG/src/tfg_molecular_generation/guacamol_benchmark.py", line 346, in generate
+    smiles_batch = self._generate_batch_from_scaffolds(scaffolds)
+  File "/home/enriquefbrt/TFG/src/tfg_molecular_generation/guacamol_benchmark.py", line 280, in _generate_batch_from_scaffolds
+    print("invalid_after_assembly:  ", assembled)
+UnboundLocalError: local variable 'assembled' referenced before assignment
+decorators_norm:  <R1> [*:1]C </R1> <R1> [*:1]C </R1> <R2> [*:2]C </R2>
+invalid_after_assembly:   COc1ccc2nc(NCCNC(=O)c3cnccn3)c(Cl)cc2c1
+scaffold:     O=C(c1sccc1-n1cccc1)N1CCCN([*:1])CC1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C </R1>
+scaffold:     O=C(Nc1c(-c2ccsc2)n[nH]c1[*:1])c1cc([*:2])cc([*:3])c1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> Cl <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> Cl <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]Cl </R2> <R3> [*:3]Cl </R3>
+scaffold:     O=C(Nc1ccc([*:1])c([*:2])c1)N1CCn2cccc2C1c1ccncc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> F <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> F <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]F </R1> <R2> [*:2]F </R2>
+scaffold:     c1nc([*:1])c(-c2nc(CNc3cc([*:2])cc([*:3])c3)no2)s1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> C <unk> < / R 2 > <unk> < R 3 > <unk> <unk> <unk> <unk> 3 <unk> C <unk> < / R 3 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]C </R2> <R3> [*:3]C </R3>
+scaffold:     O=C(CCNC(=O)c1cnn2nc([*:1])[nH]c12)Nc1ccccc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> CC <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]CC </R1>
+scaffold:     c1cc([*:2])ccc1N1CCCC2(CC([*:1])CO2)C1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> SC <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R1> [*:1]C </R1> <R2> [*:2]SC </R2>
+invalid_after_assembly:   CCc1nn2ncc(C(=O)NCCC(=O)Nc3ccccc3)c2[nH]1
+scaffold:     c1cc2c([*:2])nc(SCc3noc([*:1])n3)nc2s1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C <unk> < / R 1 > <unk> < R 2 > <unk> <unk> <unk> <unk> 2 <unk> O <unk> < / R 2 > </s>
+decorators_norm:  <R1> [*:1]C </R1> <R2> [*:2]O </R2>
+scaffold:     O=C(c1ccccc1)C1NCCc2cccc([*:1])c21
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]O </R1>
+scaffold:     c1ccc(CC2(c3nc([*:1])no3)CCC2)cc1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> C(C)(C)C <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]C(C)(C)C </R1>
+scaffold:     c1cc(-c2c[nH]nc2-c2ccc([*:1])nc2)ccn1
+decoded_raw:  <pad> < R 1 > <unk> <unk> <unk> <unk> 1 <unk> NC( CC) =O <unk> < / R 1 > </s>
+decorators_norm:  <R1> [*:1]NC( CC) =O </R1>
+[GuacaMol] Benchmarks:   0%|          | 0/5 [01:29<?, ?task/s]

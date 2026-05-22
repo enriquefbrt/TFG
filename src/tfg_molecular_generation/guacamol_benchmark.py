@@ -85,7 +85,7 @@ def _normalize_decorators_text(text: str) -> str:
             return f"<R{label}> </R{label}>"
         if "[*:" not in content:
             content = re.sub(rf"^\s*{label}\s*", "", content).strip()
-            content = f"[*:{label}] {content}".strip()
+            content = f"[*:{label}]{content}".strip()
         return f"<R{label}> {content} </R{label}>"
 
     normalized = re.sub(r"<R(\d+)>\s*(.*?)\s*</R\1>", _fix_block, normalized, flags=re.DOTALL)
@@ -251,6 +251,7 @@ class ScaffoldConditionedGuacaMolGenerator:
             actual_total = len(decoded_texts)
 
             if actual_total == expected_total:
+                print(f"[DBG] expected_total={expected_total} actual_total={actual_total} safe_mode={self._safe_generate_mode}")
                 for i, scaffold in enumerate(scaffolds):
                     for j in range(self.num_return_sequences):
                         scaffold_and_raw.append(
@@ -270,9 +271,13 @@ class ScaffoldConditionedGuacaMolGenerator:
         out: List[Optional[str]] = []
         for scaffold, decoded_raw in scaffold_and_raw:
             decorators = _normalize_decorators_text(clean_decoded_text(decoded_raw))
+            print("scaffold:    ", scaffold)
+            print("decoded_raw: ", decoded_raw)
+            print("decorators_norm: ", decorators)
             try:
                 assembled = attach_decorators_to_scaffold(scaffold, decorators)
-            except Exception:
+            except Exception as e:
+                print("invalid_after_assembly:  ", assembled)
                 self.stats.assembly_failures += 1
                 out.append(None)
                 continue
