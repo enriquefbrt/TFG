@@ -17,6 +17,7 @@ from tqdm.auto import tqdm
 from tfg_molecular_generation.ape_hf_wrapper import APEHuggingFaceTokenizer
 from tfg_molecular_generation.decorator_utils import (
     attach_decorators_to_scaffold,
+    parse_decorator_sequence,
     smiles_to_scaffold_and_decorators,
 )
 from tfg_molecular_generation.inference import clean_decoded_text, load_model_for_inference
@@ -83,13 +84,22 @@ def _normalize_decorators_text(text: str) -> str:
         content = (match.group(2) or "").strip()
         if not content:
             return f"<R{label}> </R{label}>"
+        content = content.replace(" ", "")
         if "[*:" not in content:
             content = re.sub(rf"^\s*{label}\s*", "", content).strip()
             content = f"[*:{label}]{content}".strip()
         return f"<R{label}> {content} </R{label}>"
 
     normalized = re.sub(r"<R(\d+)>\s*(.*?)\s*</R\1>", _fix_block, normalized, flags=re.DOTALL)
-    return " ".join(normalized.split())
+    normalized = " ".join(normalized.split())
+
+    # Rebuild from parsed blocks so duplicates/truncated tails are dropped and
+    # all blocks are returned in canonical parser-friendly form.
+    parsed = parse_decorator_sequence(normalized)
+    if not parsed:
+        return ""
+    rebuilt = [f"<R{label}> {parsed[label]} </R{label}>" for label in sorted(parsed.keys())]
+    return " ".join(rebuilt)
 
 
 @dataclass

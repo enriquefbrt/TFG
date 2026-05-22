@@ -6,6 +6,7 @@ from rdkit.Chem.Scaffolds import MurckoScaffold
 
 
 DECORATOR_BLOCK_RE = re.compile(r"<R(\d+)>\s*(.*?)\s*</R\1>", re.DOTALL)
+LEGACY_DUMMY_RE = re.compile(r"\[\s*\*?\s*:\s*(\d+)\s*\]")
 
 
 def is_decorator_sequence(text: str) -> bool:
@@ -43,15 +44,45 @@ def _extract_labels_from_scaffold(scaffold_mol: Chem.Mol) -> List[int]:
     return sorted(set(labels))
 
 
+def _normalize_decorator_smiles(smiles: str, label: int) -> str:
+    """
+    Tokenizer outputs may introduce spaces or legacy dummy notations.
+    Normalize to parser/rdkit-friendly compact SMILES.
+    """
+    normalized = re.sub(r"\s+", "", smiles or "")
+    if not normalized:
+        return ""
+
+    normalized = LEGACY_DUMMY_RE.sub(r"[*:\1]", normalized)
+
+    if "[*:" not in normalized:
+        # Common artifact: leading label token like "1C(=O)O".
+        normalized = re.sub(rf"^{label}(?=\D|$)", "", normalized, count=1)
+        normalized = f"[*:{label}]{normalized}"
+
+    return normalized
+
+
 def parse_decorator_sequence(decorators_text: str) -> Dict[int, str]:
     parsed: Dict[int, str] = {}
     for match in DECORATOR_BLOCK_RE.finditer(decorators_text or ""):
         label = int(match.group(1))
-        smiles = (match.group(2) or "").strip()
+        smiles_raw = (match.group(2) or "").strip()
+        if not smiles_raw:
+            continue
+
+        smiles = _normalize_decorator_smiles(smiles_raw, label)
         if not smiles:
             continue
+
+        # Truncated blocks like "<R3> 3" normalize to only a dummy with no neighbor;
+        # skip them so malformed tails do not crash assembly.
+        if smiles == f"[*:{label}]":
+            continue
+
+        # Keep first block per label and ignore repeated artifacts.
         if label in parsed:
-            raise ValueError(f"Duplicate decorator block for R{label}.")
+            continue
         parsed[label] = smiles
     return parsed
 
