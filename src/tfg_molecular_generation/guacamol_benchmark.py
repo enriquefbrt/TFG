@@ -151,7 +151,7 @@ class ScaffoldConditionedGuacaMolGenerator:
         self._warned_unexpected_generate_shape = False
         self._warned_shape_fix = False
         self._safe_generate_mode = False
-        self._consecutive_generate_shape_mismatches = 0
+        self._warned_single_pass_mismatch = False
         if num_beams > 1 and self.num_return_sequences > num_beams:
             raise ValueError(
                 "num_return_sequences must be <= num_beams when num_beams > 1. "
@@ -182,11 +182,7 @@ class ScaffoldConditionedGuacaMolGenerator:
     def _sample_scaffold(self) -> str:
         return self.rng.choice(self.scaffold_pool)
 
-    def _run_generate_decoded(
-        self,
-        scaffolds: List[str],
-        num_return_sequences: int,
-    ) -> List[str]:
+    def _run_generate_once_per_input(self, scaffolds: List[str]) -> List[str]:
         if not scaffolds:
             return []
 
@@ -210,13 +206,74 @@ class ScaffoldConditionedGuacaMolGenerator:
             num_beams=self.num_beams,
             repetition_penalty=self.repetition_penalty,
             max_new_tokens=self.max_new_tokens,
-            num_return_sequences=num_return_sequences,
+            num_return_sequences=1,
             pad_token_id=self.tokenizer.pad_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
             return_dict_in_generate=False,
         )
         generated = self._normalize_generate_output(generated)
-        return self.tokenizer.batch_decode(generated, skip_special_tokens=False)
+        decoded = self.tokenizer.batch_decode(generated, skip_special_tokens=False)
+
+        expected = len(scaffolds)
+        actual = len(decoded)
+        if actual == expected:
+            return decoded
+
+        if not self._warned_single_pass_mismatch:
+            print(
+                "[GuacaMol] Warning: generate() returned an unexpected batch size "
+                f"(expected={expected}, actual={actual}). "
+                "Recovering this pass with per-scaffold decoding."
+            )
+            self._warned_single_pass_mismatch = True
+
+        recovered: List[str] = []
+        for scaffold in scaffolds:
+            encoded_single = self.tokenizer(
+                scaffold,
+                max_length=self.max_input_length,
+                truncation=True,
+                padding=False,
+                return_tensors="pt",
+            )
+            single_ids = encoded_single["input_ids"].to(self.device)
+            single_mask = encoded_single["attention_mask"].to(self.device)
+            single_generated = self.model.generate(
+                input_ids=single_ids,
+                attention_mask=single_mask,
+                decoder_start_token_id=self.decoder_start_token_id,
+                do_sample=True,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                num_beams=self.num_beams,
+                repetition_penalty=self.repetition_penalty,
+                max_new_tokens=self.max_new_tokens,
+                num_return_sequences=1,
+                pad_token_id=self.tokenizer.pad_token_id,
+                eos_token_id=self.tokenizer.eos_token_id,
+                return_dict_in_generate=False,
+            )
+            single_generated = self._normalize_generate_output(single_generated)
+            single_decoded = self.tokenizer.batch_decode(single_generated, skip_special_tokens=False)
+            if single_decoded:
+                recovered.append(single_decoded[0])
+        return recovered
+
+    def _run_generate_decoded(
+        self,
+        scaffolds: List[str],
+        num_return_sequences: int,
+    ) -> List[str]:
+        if not scaffolds:
+            return []
+
+        n_returns = max(1, int(num_return_sequences))
+        # Robust strategy: avoid relying on HF's internal expansion for
+        # num_return_sequences>1 (source of intermittent shape mismatches).
+        all_decoded: List[str] = []
+        for _ in range(n_returns):
+            all_decoded.extend(self._run_generate_once_per_input(scaffolds))
+        return all_decoded
 
     def _normalize_generate_output(self, generated: torch.Tensor) -> torch.Tensor:
         if hasattr(generated, "sequences"):
@@ -259,38 +316,23 @@ class ScaffoldConditionedGuacaMolGenerator:
             actual_total = len(decoded_texts)
 
             if actual_total == expected_total:
-                self._consecutive_generate_shape_mismatches = 0
                 for i, scaffold in enumerate(scaffolds):
                     for j in range(self.num_return_sequences):
                         scaffold_and_raw.append(
                             (scaffold, decoded_texts[i * self.num_return_sequences + j])
                         )
             else:
-                self._consecutive_generate_shape_mismatches += 1
                 if not self._warned_unexpected_generate_shape:
                     print(
                         "[GuacaMol] Warning: Unexpected generate output count "
                         f"(expected={expected_total}, actual={actual_total}). "
-                        "Trying per-scaffold recovery for this batch."
+                        "Rebuilding candidates with per-scaffold recovery."
                     )
                     self._warned_unexpected_generate_shape = True
-                # Recover this batch without forcing permanent slow mode immediately.
                 for scaffold in scaffolds:
-                    recovered = self._run_generate_decoded(
-                        [scaffold], num_return_sequences=self.num_return_sequences
-                    )
-                    if not recovered:
-                        continue
+                    recovered = self._run_generate_decoded([scaffold], self.num_return_sequences)
                     for text in recovered[: self.num_return_sequences]:
                         scaffold_and_raw.append((scaffold, text))
-
-                # Escalate only if mismatch persists across consecutive batches.
-                if self._consecutive_generate_shape_mismatches >= 3:
-                    print(
-                        "[GuacaMol] Warning: Persistent generate shape mismatch detected. "
-                        "Enabling permanent safe per-scaffold decoding mode."
-                    )
-                    self._safe_generate_mode = True
 
         out: List[Optional[str]] = []
         for scaffold, decoded_raw in scaffold_and_raw:
