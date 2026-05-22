@@ -150,8 +150,7 @@ class ScaffoldConditionedGuacaMolGenerator:
         self.stats = GenerationStats()
         self._warned_unexpected_generate_shape = False
         self._warned_shape_fix = False
-        self._safe_generate_mode = False
-        self._consecutive_generate_shape_mismatches = 0
+        self._stable_decode_chunk_size = self.eval_batch_size
         if num_beams > 1 and self.num_return_sequences > num_beams:
             raise ValueError(
                 "num_return_sequences must be <= num_beams when num_beams > 1. "
@@ -216,6 +215,8 @@ class ScaffoldConditionedGuacaMolGenerator:
             return_dict_in_generate=False,
         )
         generated = self._normalize_generate_output(generated)
+        if isinstance(generated, torch.Tensor):
+            generated = generated.detach().cpu()
         return self.tokenizer.batch_decode(generated, skip_special_tokens=False)
 
     def _normalize_generate_output(self, generated: torch.Tensor) -> torch.Tensor:
@@ -236,61 +237,60 @@ class ScaffoldConditionedGuacaMolGenerator:
             generated = generated.reshape(-1, generated.shape[-1])
         return generated
 
+    def _decode_scaffolds_as_pairs(
+        self, scaffolds: List[str], chunk_size: int
+    ) -> Optional[List[tuple]]:
+        pairs: List[tuple] = []
+        for start in range(0, len(scaffolds), chunk_size):
+            chunk = scaffolds[start : start + chunk_size]
+            decoded = self._run_generate_decoded(
+                chunk, num_return_sequences=self.num_return_sequences
+            )
+            expected = len(chunk) * self.num_return_sequences
+            if len(decoded) != expected:
+                return None
+            for i, scaffold in enumerate(chunk):
+                for j in range(self.num_return_sequences):
+                    pairs.append((scaffold, decoded[i * self.num_return_sequences + j]))
+        return pairs
+
     def _generate_batch_from_scaffolds(self, scaffolds: List[str]) -> List[Optional[str]]:
         if not scaffolds:
             return []
         scaffold_and_raw: List[tuple] = []
-        batch_size = len(scaffolds)
 
-        if self._safe_generate_mode:
-            for scaffold in scaffolds:
-                decoded = self._run_generate_decoded(
-                    [scaffold], num_return_sequences=self.num_return_sequences
+        start_chunk = min(max(1, self._stable_decode_chunk_size), len(scaffolds))
+        chunk_size = start_chunk
+        recovered_pairs: Optional[List[tuple]] = None
+
+        while chunk_size >= 1:
+            recovered_pairs = self._decode_scaffolds_as_pairs(scaffolds, chunk_size)
+            if recovered_pairs is not None:
+                if chunk_size < self._stable_decode_chunk_size:
+                    self._stable_decode_chunk_size = chunk_size
+                    print(
+                        "[GuacaMol] Adjusted stable decode chunk size to "
+                        f"{self._stable_decode_chunk_size} due to generate-shape instability."
+                    )
+                break
+            if not self._warned_unexpected_generate_shape:
+                expected_total = len(scaffolds) * self.num_return_sequences
+                print(
+                    "[GuacaMol] Warning: Unexpected generate output count "
+                    f"(expected={expected_total}). "
+                    "Retrying with smaller decode chunks."
                 )
-                if decoded:
-                    for text in decoded[: self.num_return_sequences]:
-                        scaffold_and_raw.append((scaffold, text))
+                self._warned_unexpected_generate_shape = True
+            if chunk_size == 1:
+                break
+            chunk_size = max(1, chunk_size // 2)
+
+        if recovered_pairs is not None:
+            scaffold_and_raw = recovered_pairs
         else:
-            decoded_texts = self._run_generate_decoded(
-                scaffolds,
-                num_return_sequences=self.num_return_sequences,
-            )
-            expected_total = batch_size * self.num_return_sequences
-            actual_total = len(decoded_texts)
-
-            if actual_total == expected_total:
-                self._consecutive_generate_shape_mismatches = 0
-                for i, scaffold in enumerate(scaffolds):
-                    for j in range(self.num_return_sequences):
-                        scaffold_and_raw.append(
-                            (scaffold, decoded_texts[i * self.num_return_sequences + j])
-                        )
-            else:
-                self._consecutive_generate_shape_mismatches += 1
-                if not self._warned_unexpected_generate_shape:
-                    print(
-                        "[GuacaMol] Warning: Unexpected generate output count "
-                        f"(expected={expected_total}, actual={actual_total}). "
-                        "Trying per-scaffold recovery for this batch."
-                    )
-                    self._warned_unexpected_generate_shape = True
-                # Recover this batch without forcing permanent slow mode immediately.
-                for scaffold in scaffolds:
-                    recovered = self._run_generate_decoded(
-                        [scaffold], num_return_sequences=self.num_return_sequences
-                    )
-                    if not recovered:
-                        continue
-                    for text in recovered[: self.num_return_sequences]:
-                        scaffold_and_raw.append((scaffold, text))
-
-                # Escalate only if mismatch persists across consecutive batches.
-                if self._consecutive_generate_shape_mismatches >= 3:
-                    print(
-                        "[GuacaMol] Warning: Persistent generate shape mismatch detected. "
-                        "Enabling permanent safe per-scaffold decoding mode."
-                    )
-                    self._safe_generate_mode = True
+            # Last-resort fallback: keep attempt accounting stable even if decode output shape
+            # is unusable in this batch.
+            return [None] * (len(scaffolds) * self.num_return_sequences)
 
         out: List[Optional[str]] = []
         for scaffold, decoded_raw in scaffold_and_raw:
