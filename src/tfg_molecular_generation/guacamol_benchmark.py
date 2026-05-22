@@ -1,9 +1,9 @@
 import argparse
 import csv
 import json
-import math
 import os
 import random
+import re
 import statistics
 import time
 from dataclasses import dataclass
@@ -60,6 +60,38 @@ def _build_scaffold_pool_from_smiles(smiles_file: str, max_scaffolds: int) -> Li
     return pool
 
 
+TAG_OPEN_RE = re.compile(r"<\s*R\s*(\d+)\s*>")
+TAG_CLOSE_RE = re.compile(r"<\s*/\s*R\s*(\d+)\s*>")
+LEGACY_DUMMY_RE = re.compile(r"\[\s*:\s*(\d+)\s*\]")
+
+
+def _normalize_decorators_text(text: str) -> str:
+    """
+    Normalize decoder outputs to parser-friendly format:
+    - < R 1 > ... < / R 1 > -> <R1> ... </R1>
+    - [:1] -> [*:1]
+    - If a block starts with plain label token ("1 C..."), prepend [*:1].
+    """
+    normalized = text or ""
+    normalized = TAG_OPEN_RE.sub(r"<R\1>", normalized)
+    normalized = TAG_CLOSE_RE.sub(r"</R\1>", normalized)
+    normalized = LEGACY_DUMMY_RE.sub(r"[*:\1]", normalized)
+    normalized = " ".join(normalized.split())
+
+    def _fix_block(match: re.Match) -> str:
+        label = int(match.group(1))
+        content = (match.group(2) or "").strip()
+        if not content:
+            return f"<R{label}> </R{label}>"
+        if "[*:" not in content:
+            content = re.sub(rf"^\s*{label}\s*", "", content).strip()
+            content = f"[*:{label}] {content}".strip()
+        return f"<R{label}> {content} </R{label}>"
+
+    normalized = re.sub(r"<R(\d+)>\s*(.*?)\s*</R\1>", _fix_block, normalized, flags=re.DOTALL)
+    return " ".join(normalized.split())
+
+
 @dataclass
 class GenerationStats:
     attempts: int = 0
@@ -107,6 +139,8 @@ class ScaffoldConditionedGuacaMolGenerator:
         self.rng = random.Random(seed)
         self.stats = GenerationStats()
         self._warned_unexpected_generate_shape = False
+        self._warned_shape_fix = False
+        self._safe_generate_mode = False
         if num_beams > 1 and self.num_return_sequences > num_beams:
             raise ValueError(
                 "num_return_sequences must be <= num_beams when num_beams > 1. "
@@ -137,11 +171,11 @@ class ScaffoldConditionedGuacaMolGenerator:
     def _sample_scaffold(self) -> str:
         return self.rng.choice(self.scaffold_pool)
 
-    def _generate_one_from_scaffold(self, scaffold: str) -> Optional[str]:
-        batch = self._generate_batch_from_scaffolds([scaffold])
-        return batch[0] if batch else None
-
-    def _generate_batch_from_scaffolds(self, scaffolds: List[str]) -> List[Optional[str]]:
+    def _run_generate_decoded(
+        self,
+        scaffolds: List[str],
+        num_return_sequences: int,
+    ) -> List[str]:
         if not scaffolds:
             return []
 
@@ -172,52 +206,70 @@ class ScaffoldConditionedGuacaMolGenerator:
             num_beams=self.num_beams,
             repetition_penalty=self.repetition_penalty,
             max_new_tokens=self.max_new_tokens,
-            num_return_sequences=self.num_return_sequences,
+            num_return_sequences=num_return_sequences,
             pad_token_id=self.tokenizer.pad_token_id,
             eos_token_id=self.tokenizer.eos_token_id,
         )
+        generated = self._normalize_generate_output(generated)
+        return self.tokenizer.batch_decode(generated, skip_special_tokens=False)
 
-        decoded_texts = self.tokenizer.batch_decode(generated, skip_special_tokens=False)
-        expected_total = batch_size * self.num_return_sequences
-        actual_total = len(decoded_texts)
+    def _normalize_generate_output(self, generated: torch.Tensor) -> torch.Tensor:
+        if hasattr(generated, "sequences"):
+            generated = generated.sequences
+        if not isinstance(generated, torch.Tensor):
+            generated = torch.as_tensor(generated)
 
-        if actual_total == 0:
-            if not self._warned_unexpected_generate_shape:
+        if generated.ndim == 1:
+            generated = generated.unsqueeze(0)
+        elif generated.ndim > 2:
+            if not self._warned_shape_fix:
                 print(
-                    "[GuacaMol] Warning: model.generate returned zero sequences. "
-                    f"Expected {expected_total}. Filling with None attempts."
+                    f"[GuacaMol] Warning: generate output ndim={generated.ndim}; "
+                    "flattening to 2D [num_sequences, seq_len]."
                 )
-                self._warned_unexpected_generate_shape = True
-            return [None] * expected_total
+                self._warned_shape_fix = True
+            generated = generated.reshape(-1, generated.shape[-1])
+        return generated
 
-        scaffold_for_each_output: List[str] = []
-        if actual_total == expected_total:
+    def _generate_batch_from_scaffolds(self, scaffolds: List[str]) -> List[Optional[str]]:
+        if not scaffolds:
+            return []
+        scaffold_and_raw: List[tuple] = []
+        batch_size = len(scaffolds)
+
+        if self._safe_generate_mode:
             for scaffold in scaffolds:
-                scaffold_for_each_output.extend([scaffold] * self.num_return_sequences)
-        elif actual_total % batch_size == 0:
-            inferred_return_sequences = actual_total // batch_size
-            if not self._warned_unexpected_generate_shape:
-                print(
-                    "[GuacaMol] Warning: Unexpected number of generated sequences "
-                    f"(expected={expected_total}, actual={actual_total}). "
-                    f"Using inferred num_return_sequences={inferred_return_sequences} for this batch."
-                )
-                self._warned_unexpected_generate_shape = True
-            for scaffold in scaffolds:
-                scaffold_for_each_output.extend([scaffold] * inferred_return_sequences)
+                decoded = self._run_generate_decoded([scaffold], num_return_sequences=1)
+                if decoded:
+                    scaffold_and_raw.append((scaffold, decoded[0]))
         else:
-            if not self._warned_unexpected_generate_shape:
-                print(
-                    "[GuacaMol] Warning: Unexpected generated shape "
-                    f"(expected={expected_total}, actual={actual_total}). "
-                    "Falling back to round-robin scaffold assignment."
-                )
-                self._warned_unexpected_generate_shape = True
-            scaffold_for_each_output = [scaffolds[i % batch_size] for i in range(actual_total)]
+            decoded_texts = self._run_generate_decoded(
+                scaffolds,
+                num_return_sequences=self.num_return_sequences,
+            )
+            expected_total = batch_size * self.num_return_sequences
+            actual_total = len(decoded_texts)
+
+            if actual_total == expected_total:
+                for i, scaffold in enumerate(scaffolds):
+                    for j in range(self.num_return_sequences):
+                        scaffold_and_raw.append(
+                            (scaffold, decoded_texts[i * self.num_return_sequences + j])
+                        )
+            else:
+                if not self._warned_unexpected_generate_shape:
+                    print(
+                        "[GuacaMol] Warning: Unexpected generate output count "
+                        f"(expected={expected_total}, actual={actual_total}). "
+                        "Switching to safe per-scaffold decoding mode."
+                    )
+                    self._warned_unexpected_generate_shape = True
+                self._safe_generate_mode = True
+                return self._generate_batch_from_scaffolds(scaffolds)
 
         out: List[Optional[str]] = []
-        for scaffold, decoded_raw in zip(scaffold_for_each_output, decoded_texts):
-            decorators = clean_decoded_text(decoded_raw)
+        for scaffold, decoded_raw in scaffold_and_raw:
+            decorators = _normalize_decorators_text(clean_decoded_text(decoded_raw))
             try:
                 assembled = attach_decorators_to_scaffold(scaffold, decorators)
             except Exception:
@@ -231,12 +283,6 @@ class ScaffoldConditionedGuacaMolGenerator:
                 out.append(None)
                 continue
             out.append(Chem.MolToSmiles(mol, canonical=True))
-
-        # Keep downstream accounting deterministic in terms of planned attempts.
-        if len(out) < expected_total:
-            out.extend([None] * (expected_total - len(out)))
-        elif len(out) > expected_total:
-            out = out[:expected_total]
         return out
 
     def _generate_attempts_for_scaffold(
@@ -250,14 +296,18 @@ class ScaffoldConditionedGuacaMolGenerator:
             return []
         results: List[Optional[str]] = []
         produced = 0
+        consecutive_empty_batches = 0
         while produced < n_attempts:
             remaining = n_attempts - produced
-            scaffold_batch_size = min(
-                self.eval_batch_size,
-                max(1, int(math.ceil(remaining / float(self.num_return_sequences)))),
-            )
+            scaffold_batch_size = min(self.eval_batch_size, remaining)
             batch_scaffolds = [scaffold] * scaffold_batch_size
             batch = self._generate_batch_from_scaffolds(batch_scaffolds)
+            if not batch:
+                consecutive_empty_batches += 1
+                if consecutive_empty_batches >= 10:
+                    break
+                continue
+            consecutive_empty_batches = 0
             take = min(remaining, len(batch))
             results.extend(batch[:take])
             produced += take
@@ -272,6 +322,7 @@ class ScaffoldConditionedGuacaMolGenerator:
         max_attempts = target * self.attempts_multiplier
 
         with torch.no_grad():
+            consecutive_empty_batches = 0
             with tqdm(
                 total=max_attempts,
                 desc="[GuacaMol] Sampling attempts",
@@ -285,25 +336,21 @@ class ScaffoldConditionedGuacaMolGenerator:
                     if remaining_attempts <= 0:
                         break
 
-                    # Plan only as many attempts as still needed to reach target;
-                    # this keeps runtime low near convergence.
-                    attempts_needed = max(1, target - len(generated))
-                    planned_attempts = min(remaining_attempts, attempts_needed)
-                    scaffold_batch_size = min(
-                        self.eval_batch_size,
-                        max(
-                            1,
-                            int(
-                                math.ceil(
-                                    planned_attempts / float(self.num_return_sequences)
-                                )
-                            ),
-                        ),
-                    )
+                    scaffold_batch_size = min(self.eval_batch_size, remaining_attempts)
                     scaffolds = [self._sample_scaffold() for _ in range(scaffold_batch_size)]
                     smiles_batch = self._generate_batch_from_scaffolds(scaffolds)
-                    if len(smiles_batch) > planned_attempts:
-                        smiles_batch = smiles_batch[:planned_attempts]
+                    if not smiles_batch:
+                        # No real sequences returned by generate() for this batch; skip safely.
+                        consecutive_empty_batches += 1
+                        if consecutive_empty_batches >= 10:
+                            print(
+                                "[GuacaMol] Stopping: generate() returned empty batches repeatedly."
+                            )
+                            break
+                        continue
+                    consecutive_empty_batches = 0
+                    if len(smiles_batch) > remaining_attempts:
+                        smiles_batch = smiles_batch[:remaining_attempts]
 
                     for smiles in smiles_batch:
                         self.stats.attempts += 1
@@ -561,11 +608,16 @@ def _evaluate_scaffold_distributions(
             valid_count = len(valid_smiles)
             unique_count = len(set(valid_smiles))
             attempts_count = len(attempts)
-
-            validity = valid_count / float(attempts_count)
-            uniqueness = (unique_count / float(valid_count)) if valid_count else 0.0
-            novelty = (novel_count / float(valid_count)) if valid_count else 0.0
-            similarity = (similar_count / float(valid_count)) if valid_count else 0.0
+            if attempts_count == 0:
+                validity = 0.0
+                uniqueness = 0.0
+                novelty = 0.0
+                similarity = 0.0
+            else:
+                validity = valid_count / float(attempts_count)
+                uniqueness = (unique_count / float(valid_count)) if valid_count else 0.0
+                novelty = (novel_count / float(valid_count)) if valid_count else 0.0
+                similarity = (similar_count / float(valid_count)) if valid_count else 0.0
 
             rows.append(
                 {
